@@ -70,6 +70,8 @@
  #include <ctype.h>
  #define bye(x)	exits((x)? "error": NULL)
  #define ptrdiff_t int
+#else
+ #define USED(...)
 #endif
 
 #ifdef unix

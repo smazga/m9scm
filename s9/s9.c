@@ -1149,7 +1149,6 @@ void rehash(cell e) {
 	p = cdr(e);
 	while (p != NIL) {
 		s = symbol_name(caar(p));
-		h = 0;
 		hash(s, h);
 		new = cons(car(p), v[h%k]);
 		v = vector(car(e));
@@ -1631,10 +1630,12 @@ cell resume(cell x) {
 }
 
 cell pp_unquote(cell x) {
+	USED(x);
 	return error("unquote: not in quasiquote context", VOID);
 }
 
 cell pp_unquote_splicing(cell x) {
+	USED(x);
 	return error("unquote-splicing: not in quasiquote context", VOID);
 }
 
@@ -2534,7 +2535,7 @@ cell pp_string_set_b(cell x) {
 	return UNSPECIFIC;
 }
 
-#define RT	k=0; return
+#define RT	k=0; USED(k); return
 
 int string_ci_le(char *s1, char *s2, int k) { RT strcmp_ci(s1, s2) <= 0; }
 int string_ci_lt(char *s1, char *s2, int k) { RT strcmp_ci(s1, s2) <  0; }
@@ -2756,10 +2757,12 @@ cell pp_close_output_port(cell x) {
 }
 
 cell pp_current_input_port(cell x) {
+	USED(x);
 	return make_port(input_port(), T_INPUT_PORT);
 }
 
 cell pp_current_output_port(cell x) {
+	USED(x);
 	return make_port(output_port(), T_OUTPUT_PORT);
 }
 
@@ -3092,6 +3095,7 @@ cell pp_stats(cell x) {
 }
 
 cell pp_symbols(cell x) {
+	USED(x);
 	cell	n, a, y, new;
 
 	n = NIL;
@@ -3851,6 +3855,7 @@ void clear_leftover_envs(void) {
 
 #ifdef plan9
  void keyboard_interrupt(void *dummy, char *note) {
+	USED(dummy);
 	if (strstr(note, "interrupt") == NULL)
 		noted(NDFLT);
 	reset_std_ports();

@@ -1331,7 +1331,7 @@ cell s9_bignum_divide(cell a, cell b) {
  */
 
 static cell count_digits(cell m) {
-	int	k = 0;
+	int	k;
 	cell	x;
 
 	x = car(m);
@@ -1777,7 +1777,7 @@ cell s9_real_sqrt(cell x) {
 	if (s9_real_zero_p(x))
 		return Zero;
 	save(x);
-	n0 = n1 = x;
+	n0 = x;
 	save(n0);
 	while (1) {
 		n1 = s9_real_divide(x, n0);
@@ -2397,6 +2397,7 @@ int s9_unlock_port(int port) {
  */
 
 static char *expected(int n, cell who, char *what, cell got) {
+	USED(got);
 	static char	msg[100];
 	S9_PRIM		*p;
 
