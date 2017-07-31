@@ -47,9 +47,11 @@ inst: s9 s9.image
 	cp contrib/* $s9dir/contrib
 	{ x = `{pwd}; tar c help | { cd $s9dir; tar x }; cd $x }
 	sed -e 's|^s9dir=.*|s9dir='$s9dir'|' <util/s9.rc >/rc/bin/s9
+	chmod 755 /rc/bin/s9
+	cp s9.1 /sys/man/1/s9
 
 deinst:
 	rm -rf /lib/s9fes
-	rm -f /rc/bin/s9 /$objtype/bin/s9fes
+	rm -f /rc/bin/s9 /$objtype/bin/s9fes /sys/man/1/s9
 
 </sys/src/cmd/mkone
