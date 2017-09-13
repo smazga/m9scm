@@ -1,0 +1,7 @@
+S9 EXT  (sys:exec string list)  ==>  unspecific
+
+Exec overlays the calling process with STRING,
+then tranfers to the entry point of the image of STRING
+passing LIST as arguments.
+
+(sys:exec "/bin/ls" '())  ==>  unspecific

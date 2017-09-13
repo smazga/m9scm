@@ -1,0 +1,16 @@
+S9 EXT  (sys:errstr string)  ==>  string
+
+When a system call fails it returns -1 and records a null
+terminated string describing the error in a per-process
+buffer.
+
+sys:errstr swaps the contents of that buffer with STRING, though
+it usually called with an empty string.
+
+STRING will be truncated to ERRMAX if is too long.
+
+If no system call has generated an error since the last call to
+sys:errstr, an empty string is returned.
+
+(sys:bind "foo" "bar" 0)
+(sys:errstr "")  ==>
