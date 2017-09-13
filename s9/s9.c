@@ -4061,9 +4061,9 @@ void make_initial_env(void) {
 	Environment = extend(symbol_ref("*arguments*"), NIL, Environment);
 	S_arguments = cadr(Environment);
 	Environment = extend(symbol_ref("*epsilon*"), Epsilon, Environment);
-        Environment = extend(symbol_ref("*extensions*"), NIL, Environment);
+	Environment = extend(symbol_ref("*extensions*"), NIL, Environment);
 	S_extensions = cadr(Environment);
-        Environment = extend(symbol_ref("*host-system*"), NIL, Environment);
+	Environment = extend(symbol_ref("*host-system*"), NIL, Environment);
 	S_host_system = cadr(Environment);
 #ifdef unix
 	box_value(S_host_system) = symbol_ref("unix");
@@ -4078,7 +4078,7 @@ void make_initial_env(void) {
 	S_library_path = cadr(Environment);
 	new = get_library_path();
 	box_value(S_library_path) = new;
-        Environment = extend(symbol_ref("*loading*"), FALSE, Environment);
+	Environment = extend(symbol_ref("*loading*"), FALSE, Environment);
 	S_loading = cadr(Environment);
 	Apply_magic = -1;
 	Callcc_magic = -1;
