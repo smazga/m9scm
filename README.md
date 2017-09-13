@@ -4,4 +4,4 @@ This is just the source for [s9fes](http://www.t3x.org/s9fes) with patches to ma
 
 *last update* 20170125
 
-Note: The plan9 "sys:" stuff doesn't work for some reason.
+Note: The plan9 "sys:" stuff isn't documented (yet).
