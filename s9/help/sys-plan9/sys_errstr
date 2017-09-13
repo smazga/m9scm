@@ -7,7 +7,7 @@ buffer.
 sys:errstr swaps the contents of that buffer with STRING, though
 it usually called with an empty string.
 
-STRING will be truncated to ERRMAX if is too long.
+STRING will be truncated to ERRMAX if it is too long.
 
 If no system call has generated an error since the last call to
 sys:errstr, an empty string is returned.
