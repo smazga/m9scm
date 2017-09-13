@@ -1,0 +1,13 @@
+S9 EXT  (sys:dup integer integer)  ==>  integer
+
+Given a file descriptor INTEGER (arg 1), referring to an open file,
+return a new file descriptor referring to the same file.
+
+If INTEGER (arg 2) is -1, the system chooses the lowest available file
+descriptor. Otherwise, INTEGER is used.
+
+INTEGER (arg 2) can be no greater than 20 more than the highest file
+descriptor ever used by the program.
+
+(sys:dup 2 -1)  ==>  3
+(sys:dup 1 6)  ==>  6
