@@ -1,0 +1,10 @@
+S9 EXT  (sys:alarm integer)  ==>  unspecific
+
+Cause an alarm note to be sent to the invoking process
+after INTEGER milliseconds.
+
+Successive calls to alarm reset the alarm clock.
+
+A zero argument clears the alarm.
+
+(sys:alarm 100)  ==>  unspecific
