@@ -1,0 +1,11 @@
+S9 EXT  (sys:fork)  ==>  integer
+
+Create a new process.
+
+The value returned in the parent is the process id of the child.
+The value returned in the child is zero.
+
+(if (eqv? (sys:fork) 0)
+    (format #t "I am the child.")
+    (format #t "I am the parent."))  ==>  I am the child.#t
+                                          I am the parent.#t
