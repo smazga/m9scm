@@ -1130,6 +1130,7 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:fauth",      pp_sys_fauth,      0, 0, { ___,___,___ } },
  {"sys:convs2m",    pp_sys_convS2M,    1, 1, { VEC,___,___ } },
  {"sys:fd2path",    pp_sys_fd2path,    1, 1, { INT,___,___ } },
+ {"sys:fd->path",   pp_sys_fd2path,    1, 1, { INT,___,___ } },
  {"sys:fork",       pp_sys_fork,       0, 0, { ___,___,___ } },
  {"sys:fstat",      pp_sys_fstat,      1, 1, { INT,___,___ } },
 #ifdef FOO

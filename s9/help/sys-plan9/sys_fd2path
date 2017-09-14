@@ -1,0 +1,7 @@
+S9 EXT  (sys:fd->path integer)  ==>  string
+        (sys:fd2path integer)   ==>  string
+
+Return the path name associated with the open file descriptor INTEGER.
+
+(sys:fd->path (sys:open "test.txt" 0))  ==>  "/usr/glenda/test.txt"
+(sys:fd2path (sys:open "test.txt" 0))   ==>  "/usr/glenda/test.txt"
