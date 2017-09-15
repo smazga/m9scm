@@ -1,0 +1,8 @@
+S9 EXT  (sys:sleep integer)  ==>  unspecific
+
+Suspends the current process for INTEGER milliseconds.
+
+If INTEGER is zero, the process gives up the CPU if another
+process is waiting to run, returning immediately if not.
+
+(sys:sleep 1000)  ==>  unspecific
