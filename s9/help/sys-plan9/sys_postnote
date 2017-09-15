@@ -1,0 +1,11 @@
+S9 EXT  (sys:postnote integer integer string)  ==>  boolean
+
+Send a note to a process or process group. If the first argument is
+PNPROC, then STRING is written to /proc/INTEGER (argument 2)/note. If
+the first argument is PNGROUP, the note is delivered to the process group
+by writing STRING to /proc/INTEGER (argument 2)/notepg.
+
+For PNGROUP only, if the calling process is in the target group, the note
+is not delivered to that process.
+
+(sys:postnote (sys:magic-const "PNPROC") 1234 "die")  ==>  #t
