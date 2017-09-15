@@ -1,0 +1,20 @@
+S9 EXT  (sys:rendezvous string string)  ==>  string
+
+Allows two processes to synchronize and exchange a value.
+
+Two processes wishing to synchronize call rendezvous with a common
+tag. One process will arrive at the rendezvous first; it suspends execution
+until a second arrives. When a second process meets the rendezvous the value
+arguments are exchanged between the processes and returned as the result
+of the respective rendezvous system calls.
+
+Both processes are awakened when the rendezvous succeeds.
+
+(define tag #t)
+(let ((pid (sys:rfork 20))) ; RFFDG|RFPROC = 20
+    (if (eqv? pid 0)
+        (format #t "I am the child and received: ~A~%"
+            (sys:rendezvous 'tag "childish message"))
+        (format #t "I am the parent and received: ~A~%"
+            (sys:rendezvous 'tag "parental message"))))  ==>  I am the parent and received: childish message
+                                                              I am the child and received: parental message
