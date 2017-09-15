@@ -1,0 +1,8 @@
+S9 EXT  (sys:pipe)  ==>  list
+
+Creates a buffered channel for interprocess I/O communication.
+
+Two file descriptors are returned. Data written to one is available for reading
+from the other.
+
+(sys:pipe)  ==>  (3 4)
