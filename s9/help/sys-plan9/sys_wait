@@ -1,0 +1,15 @@
+S9 EXT  (sys:wait)  ==>  string
+
+Causes a process to wait for any child process to exit.
+
+Returns a STRING holding information about the exited child.
+
+Note: This example doesn't work in the REPL.
+
+(let ((pid (sys:fork)))
+  (if (eqv? pid 0)
+    (begin (sys:sleep 3000) (format #t "I die now.~%"))
+    (begin (format #t "waiting...~%")
+      (format #t "~A~%" (sys:wait)))))  ==>  waiting...
+                                             I die now.
+                                             (4853 0 0 3010 )
