@@ -1,0 +1,9 @@
+S9 EXT  (sys:remove string)  ==>  unspecific
+
+Removes a file from the directory containing it and discards
+the contents of the file.
+
+The user must have write permission in the containing directory. If
+STRING is a directory, it must be empty.
+
+(sys:remove "test.txt")  ==>  unspecific
