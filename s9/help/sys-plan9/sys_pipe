@@ -6,3 +6,7 @@ Two file descriptors are returned. Data written to one is available for reading
 from the other.
 
 (sys:pipe)  ==>  (3 4)
+
+(define p (sys:pipe))
+(sys:write (car p) "testing")  ==>  7
+(sys:read (cadr p) 10)         ==>  "testing"
