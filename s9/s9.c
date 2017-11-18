@@ -2845,7 +2845,7 @@ cell pp_open_input_file(cell x) {
 cell pp_open_output_file(cell x) {
 	int	p;
 
-	p = open_output_port(string(car(x)), 0);
+	p = open_output_port(string(car(x)), cdr(x));
 	if (p < 0)
 		return error("open-output-file: could not open file",
 				car(x));
@@ -3265,7 +3265,7 @@ S9_PRIM Core_primitives[] = {
  { "null?",               pp_null_p,              1,  1, { ___,___,___ } },
  { "odd?",                pp_odd_p,               1,  1, { REA,___,___ } },
  { "open-input-file",     pp_open_input_file,     1,  1, { STR,___,___ } },
- { "open-output-file",    pp_open_output_file,    1,  1, { STR,___,___ } },
+ { "open-output-file",    pp_open_output_file,    1,  2, { STR,INT,___ } },
  { "output-port?",        pp_output_port_p,       1,  1, { ___,___,___ } },
  { "pair?",               pp_pair_p,              1,  1, { ___,___,___ } },
  { "peek-char",           pp_peek_char,           0,  1, { INP,___,___ } },
