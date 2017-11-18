@@ -1,7 +1,7 @@
 /*
  * Scheme 9 from Empty Space, Plan9 Interface
  * By Bakul Shah, 2009-2011;
- *    Nils M Holm, 2015-2016
+ *    Nils M Holm, 2015-2017
  * Placed in the Public Domain
  */
 
@@ -1129,7 +1129,6 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:exits",      pp_sys_exits,      1, 1, { STR,___,___ } },
  {"sys:fauth",      pp_sys_fauth,      0, 0, { ___,___,___ } },
  {"sys:convs2m",    pp_sys_convS2M,    1, 1, { VEC,___,___ } },
- {"sys:fd2path",    pp_sys_fd2path,    1, 1, { INT,___,___ } },
  {"sys:fd->path",   pp_sys_fd2path,    1, 1, { INT,___,___ } },
  {"sys:fork",       pp_sys_fork,       0, 0, { ___,___,___ } },
  {"sys:fstat",      pp_sys_fstat,      1, 1, { INT,___,___ } },
