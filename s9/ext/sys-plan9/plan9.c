@@ -58,6 +58,7 @@
 #include "s9ext.h"
 #include "s9-ffi.h"
 #include <fcall.h>
+#include <auth.h>
 
 #ifdef length
 #undef length
@@ -661,6 +662,22 @@ cell pp_sys_convM2S(cell x) {
 	return sys_convM2S(buf, BIT16SZ + GBIT16(buf));
 }
 
+cell pp_sys_userpasswd(cell x) {
+	UserPasswd *up;
+	cell pass;
+
+	up = auth_getuserpasswd(auth_getkey, string(car(x)));
+	if(up == nil)
+		pass = cons(NIL, NIL);
+	else {
+		pass = cons(
+			make_string(up->user, strlen(up->user)),
+			make_string(up->passwd, strlen(up->passwd)));
+		free(up);
+	}
+	return pass;
+}
+
 cell pp_sys_create(cell x) {
 	int	fd;
 	char	name[] = "sys:create";
@@ -1172,6 +1189,7 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:sysr1",      pp_sys_sysr1,      0, 0, { ___,___,___ } },
 #endif
  {"sys:unmount",    pp_sys_unmount,    2, 2, { STR,STR,___ } },
+ {"sys:userpasswd", pp_sys_userpasswd, 1, 1, { STR,___,___ } },
  {"sys:wait",       pp_sys_wait,       0, 0, { ___,___,___ } },
  {"sys:waitpid",    pp_sys_waitpid,    0, 0, { ___,___,___ } },
  {"sys:write",      pp_sys_write,      2, 2, { INT,STR,___ } },
