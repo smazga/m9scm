@@ -1,0 +1,7 @@
+S9 EXT  (sys:userpasswd string)  ==>  PAIR
+
+Fetches username and password from factotum and returns
+them as a pair.
+
+(sys:userpasswd "proto=pass server=gibson user=zerocool")
+  ==>  ("zerocool" . "crashoverride")
