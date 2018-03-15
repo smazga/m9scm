@@ -124,7 +124,7 @@ install-all:	install-s9 install-util install-progs
 
 # old version of install(1) may need -c
 #C=-c
-install-s9:	s9 s9.scm s9.image s9.1.gz
+install-s9:	s9 s9.scm s9.image s9.1.gz libs9core.a
 	install -d -m 0755 $(S9DIR)
 	install -d -m 0755 $(S9DIR)/help
 	install -d -m 0755 $(S9DIR)/help/sys-unix
