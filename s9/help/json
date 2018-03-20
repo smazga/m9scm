@@ -1,0 +1,18 @@
+S9 LIB  (json-load string)        ==> list
+
+        (load-from-library "json.scm")
+
+JSON-LOAD takes a file (specified in STRING) and loads it into a list. JSON
+types are represented with scheme types as follows:
+
+ array      --> list
+ dictionary --> list of pairs
+ string     --> string
+ number     --> number
+ null       --> '()
+ true       --> #t
+ false      --> #f
+
+Assuming a file "simple.json" containing: {"key":"value"}
+
+(json-load "simple.json")   ==>  (("key" . "value"))
