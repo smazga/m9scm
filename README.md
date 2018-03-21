@@ -9,4 +9,4 @@ Note: The plan9 "sys:" stuff isn't fully documented (yet).
 ### New Stuff ###
 * added several sys: help files for plan9
 * added sys:userpasswd for accessing factotum (plan9 only)
-* added a preliminary json module to the library (still needs work)
+* added a simple json module to the library
