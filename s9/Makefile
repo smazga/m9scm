@@ -4,7 +4,7 @@
 # In the public domain
 
 # Change at least this line:
-PREFIX= /u
+PREFIX=/usr/local
 
 # Base version and Release
 BASE=		20170124
@@ -181,11 +181,10 @@ install-progs:
 deinstall:	deinstall-s9 deinstall-util deinstall-progs
 
 deinstall-s9:
-	rm -f $(S9DIR)/help/* && rmdir $(S9DIR)/help
-	rm -f $(S9DIR)/* && rmdir $(S9DIR)
+	rm -fr $(S9DIR)/help/* && rmdir $(S9DIR)/help
+	rm -fr $(S9DIR)/* && rmdir $(S9DIR)
+	rm -f $(MANDIR)/s9.1.gz
 	rm -f $(BINDIR)/s9
-	-rmdir $(BINDIR)
-	-rmdir $(MANDIR)
 
 deinstall-util:
 	rm -f $(BINDIR)/s9help		\
