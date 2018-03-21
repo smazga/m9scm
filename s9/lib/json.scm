@@ -100,11 +100,21 @@
 	  (loop (append acc (cons r '()))
 		(peek-character file)))))))
 
+  (define (read-array file)
+    (let loop ((ch (peek-character file))
+	       (array '()))
+      (cond
+       ((char-whitespace? ch) (read-character file) (loop (peek-character file) array))
+       ((eqv? ch #\,) (read-character file) (loop (peek-character file) array))
+       ((eqv? ch #\]) (read-character file) array)
+       (else (let ((r (append array (cons (parse file) '()))))
+	       (loop (peek-character file) r))))))
+
   (define parse
     (lambda (file)
       (let loop ((ch (peek-character file)))
 	(cond ((eqv? #\{ ch) (read-character file) (read-object file))
-	      ;;	    ((eqv? #\[ (read-array file)))
+	      ((eqv? #\[ ch) (read-character file) (read-array file))
 	      ((eqv? #\t ch) (read-true file))
 	      ((eqv? #\f ch) (read-false file))
 	      ((eqv? #\n ch) (read-null file))
