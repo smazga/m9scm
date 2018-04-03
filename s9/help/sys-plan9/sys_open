@@ -1,0 +1,22 @@
+S9 EXT  (sys:open string integer)  ==>  integer
+
+STRING is the path to the file to open.
+
+INTEGER is the mode with which to open the file. It may be one of the following:
+
+        sys:OREAD    Open with read permissions.
+        sys:OWRITE   Open with write permissions.
+        sys:ORDWR    Open with read/write permissions.
+        sys:OEXEC    Open with execute permission.
+
+The following may be bitwise ORed with the aforementioned modes:
+
+        sys:OTRUNC   Truncate the file to zero length before opening it.
+        sys:OCEXEC   Close the file when an exec or execl system call is made.
+        sys:ORCLOSE  Remove the file when it is closed by everyone who has a
+                     copy of the file descriptor.
+
+See also:
+  sys:close
+  sys:create
+  open(2)

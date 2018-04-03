@@ -9,14 +9,13 @@ The second STRING becomes an alias for the original object.
 
 INTEGER is the flag to apply. INTEGER may have one of these values:
 
-        (sys:magic-const "MREPL)     Replace the old file by the new one.
-        (sys:magic-const "MBEFORE")  Both the old and new files must be directories.
-                                     Add the constituent files of the new directory
-                                     to the union directory at old so its contents
-                                     appear first in the union.
-        (sys:magic-const "MAFTER")   Like MBEFORE but appended to the union.
-        (sys:magic-const "MCREATE")  Can be OR'd with other flags to cause a union
-                                     directory to be created if it does not already
-                                     exist.
+        sys:MREPL    Replace the old file by the new one.
+        sys:MBEFORE  Both the old and new files must be directories.
+                     Add the constituent files of the new directory to the
+                     union directory at old so its contents appear first in
+                     the union.
+        sys:MAFTER   Like MBEFORE but appended to the union.
+        sys:MCREATE  Can be OR'd with other flags to cause a union directory
+                     to be created if it does not already exist.
 
-(sys:bind "/rc/bin" "/bin" (sys:magic-const "MAFTER"))  ==>  #t
+(sys:bind "/rc/bin" "/bin" sys:MAFTER)  ==>  #t
