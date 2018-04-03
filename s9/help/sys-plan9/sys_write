@@ -1,0 +1,10 @@
+S9 EXT  (sys:write integer string)  ==>  integer
+
+Write STRING to file descriptor INTEGER and return the number of bytes written.
+
+(define x (sys:create "blort" sys:OWRITE #o644))
+(sys:write x "foobar")  ==>  6
+
+See also:
+  sys:read
+  read(2)

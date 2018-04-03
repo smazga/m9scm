@@ -1,0 +1,8 @@
+S9 EXT  (sys:read integer integer)  ==>  string
+
+Read INTEGER (argument 2) bytes from file descriptor INTEGER (argument 1) and
+return them.
+
+See also:
+  sys:write
+  read(2)
