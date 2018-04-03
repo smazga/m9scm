@@ -808,6 +808,12 @@ cell pp_sys_fd2path(cell x) {
 	return buf2;
 }
 
+cell pp_sys_flush(cell x) {
+	if (fflush(Ports[port_no(car(x))]))
+		return sys_error("sys:flush", x);
+	return sys_ok();
+}
+
 cell pp_sys_fork(cell) {
 	int	pid;
 
@@ -835,6 +841,28 @@ cell pp_sys_fwstat(cell x) {
 	r = fwstat(integer_value("sys:fwstat", fd),
 		   (uchar*)string(st), string_len(st));
 	return r < 0? FALSE : TRUE;
+}
+
+cell pp_sys_make_input_port(cell x) {
+	int	in = new_port();
+
+	if (in < 0)
+		return error("sys:make-input-port: out of ports", VOID);
+
+	Ports[in] = fdopen(integer_value("sys:make-input-port", car(x)),
+				"r");
+	return make_port(in, T_INPUT_PORT);
+}
+
+cell pp_sys_make_output_port(cell x) {
+	int	out = new_port();
+
+	if (out < 0)
+		return error("sys:make-output-port: out of ports", VOID);
+
+	Ports[out] = fdopen(integer_value("sys:make-output-port", car(x)),
+				"w");
+	return make_port(out, T_OUTPUT_PORT);
 }
 
 cell pp_sys_mount(cell x) {
@@ -1155,6 +1183,7 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:fauth",      pp_sys_fauth,      0, 0, { ___,___,___ } },
  {"sys:convs2m",    pp_sys_convS2M,    1, 1, { VEC,___,___ } },
  {"sys:fd->path",   pp_sys_fd2path,    1, 1, { INT,___,___ } },
+ {"sys:flush",      pp_sys_flush,      1,  1,{ OUP,___,___ } },
  {"sys:fork",       pp_sys_fork,       0, 0, { ___,___,___ } },
  {"sys:fstat",      pp_sys_fstat,      1, 1, { INT,___,___ } },
 #ifdef FOO
@@ -1162,6 +1191,8 @@ S9_PRIM Plan9_primitives[] = {
 #endif
  {"sys:fwstat",     pp_sys_fwstat,     2, 2, { INT,STR,___ } },
  {"sys:magic-const",pp_sys_magic_const,1, 1, { STR,___,___ } },
+ {"sys:make-input-port",  pp_sys_make_input_port,  1,  1, { INT,___,___ } },
+ {"sys:make-output-port", pp_sys_make_output_port, 1,  1, { INT,___,___ } },
  {"sys:mount",      pp_sys_mount,      5, 5, { INT,INT,STR } },
  {"sys:convm2d",    pp_sys_convM2D,    1, 1, { STR,___,___ } },
  {"sys:convm2s",    pp_sys_convM2S,    1, 1, { STR,___,___ } },
