@@ -3,6 +3,6 @@ S9 EXT  (sys:dirread integer)  ==>  list
 Reads from INTEGER and returns a list of unpacked lists representing
 the underlying Dir structures.
 
-(sys:dirread (sys:open "dir" (sys:magic-const "OREAD")))  ==>
+(sys:dirread (sys:open "dir" sys:OREAD))  ==>
         (#(dir 77 26 "000000000007c1a3:00000002:00" 420 1505271775 \
            1505271775 6 "test" "glenda" "glenda" "glenda") ())

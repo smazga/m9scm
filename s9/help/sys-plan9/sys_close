@@ -1,0 +1,8 @@
+S9 EXT  (sys:close integer)  ==>  integer
+
+Close the file represented by the file descriptor INTEGER.
+
+See also:
+  sys:open
+  sys:create
+  open(2)

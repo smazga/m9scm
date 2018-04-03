@@ -8,4 +8,4 @@ by writing STRING to /proc/INTEGER (argument 2)/notepg.
 For PNGROUP only, if the calling process is in the target group, the note
 is not delivered to that process.
 
-(sys:postnote (sys:magic-const "PNPROC") 1234 "die")  ==>  #t
+(sys:postnote sys:PNPROC 1234 "die")  ==>  #t
