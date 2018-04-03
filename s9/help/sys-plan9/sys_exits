@@ -1,0 +1,5 @@
+S9 EXT  (sys:exits string)  ==>  unspecific
+
+Exits is the conventional way to terminate a process. STRING conventionally
+includes a brief explanation of the reason for exiting, or an empty string
+to indicate normal termination.
