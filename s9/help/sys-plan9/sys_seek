@@ -1,0 +1,16 @@
+S9 EXT  (sys:seek integer integer integer)  ==>  integer
+
+Sets the offset for the file associated with INTEGER (argument 1) as follows:
+
+        If INTEGER (argument 3) is:
+
+                0  The offset is set to INTEGER (argument 2) bytes.
+                1  The pointer is set to its current location plus
+                   INTEGER (argument 2).
+                2  The pointer is set to the size of the file plus
+                   INTEGER (argument 2).
+
+        The new file offset value is returned.
+
+        Seeking in a directory is not allowed. Seeking in a pipe is a no-op.
+
