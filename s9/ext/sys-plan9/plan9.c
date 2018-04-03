@@ -770,6 +770,13 @@ cell pp_sys_exec(cell x) {
 	return sys_error("sys:exec", x);
 }
 
+cell pp_sys_exit(cell x) {
+	USED(x);
+	exits(nil);
+	fatal("exits() failed");
+	return sys_ok();
+}
+
 cell pp_sys_exits(cell x) {
 	exits(string(car(x)));
 	fatal("exits() failed");
@@ -1143,6 +1150,7 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:dup",        pp_sys_dup,        2, 2, { INT,INT,___ } },
  {"sys:errstr",     pp_sys_errstr,     1, 1, { STR,___,___ } },
  {"sys:exec",       pp_sys_exec,       2, 2, { STR,LST,___ } },
+ {"sys:exit",       pp_sys_exit,       0, 0, { ___,___,___ } },
  {"sys:exits",      pp_sys_exits,      1, 1, { STR,___,___ } },
  {"sys:fauth",      pp_sys_fauth,      0, 0, { ___,___,___ } },
  {"sys:convs2m",    pp_sys_convS2M,    1, 1, { VEC,___,___ } },
