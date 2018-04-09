@@ -129,6 +129,6 @@
       (lambda (x)
 	(parse x)))))
 
-(define-syntax json-load
+(define-syntax json:load
   (lambda (file)
     `(using json (load) (load ,file))))

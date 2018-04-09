@@ -1,4 +1,4 @@
-S9 LIB  (json-load string)        ==> list
+S9 LIB  (json:load string)        ==> list
 
         (load-from-library "json.scm")
 
@@ -15,4 +15,4 @@ types are represented with scheme types as follows:
 
 Assuming a file "simple.json" containing: {"key":"value"}
 
-(json-load "simple.json")   ==>  (("key" . "value"))
+(json:load "simple.json")   ==>  (("key" . "value"))
