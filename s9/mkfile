@@ -3,6 +3,7 @@
 
 </$objtype/mkfile
 
+S9FES_LIBRARY_PATH=
 TARG=		s9
 OFILES=		s9.$O s9core.$O plan9.$O s9-ffi.$O
 CLEANFILES=	s9.image test.image
