@@ -555,7 +555,7 @@ cell sys_error(char *who, cell what) {
 		strcpy(&buf[k], ": ");
 		k += 2;
 	}
-	strcpy(buf+k+2, Last_errstr);
+	strcpy(buf+k, Last_errstr);
 	error(buf, what);
 	return FALSE;
 }
@@ -954,6 +954,8 @@ cell pp_sys_read(cell x) {
 	k = integer_value(name, cadr(x));
 	buf = make_string("", k);
 	r = read(integer_value(name, car(x)), string(buf), k);
+	if (r == 0)
+		return END_OF_FILE;
 	if (r < 0)
 		return sys_error(name, x);
 	{
