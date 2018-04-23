@@ -946,6 +946,22 @@ cell pp_sys_pwrite(cell x) {
 	return make_long_integer(r);
 }
 
+cell pp_sys_read9pmsg(cell x) {
+	int fd, n;
+	uchar buf[8192+IOHDRSZ];
+	cell r;
+	char name[] = "sys:read9pmsg";
+
+	fd = integer_value(name, car(x));
+	n = read9pmsg(fd, buf, sizeof buf);
+	if (n < 0)
+		return sys_error(name, x);
+
+	r = make_string("", n);
+	memcpy(string(r), buf, n);
+	return r;
+}
+
 cell pp_sys_read(cell x) {
 	cell	buf, buf2;
 	int	r, k;
@@ -1208,6 +1224,7 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:pread",      pp_sys_pread,      3, 3, { INT,INT,INT } },
  {"sys:pwrite",     pp_sys_pwrite,     3, 3, { INT,STR,INT } },
  {"sys:read",       pp_sys_read,       2, 2, { INT,INT,___ } },
+ {"sys:read9pmsg",	pp_sys_read9pmsg,  1, 1, { INT,___,___ } },
  {"sys:remove",     pp_sys_remove,     1, 1, { STR,___,___ } },
  {"sys:rendezvous", pp_sys_rendezvous, 2, 2, { SYM,STR,___ } },
  {"sys:rfork",      pp_sys_rfork,      1, 1, { INT,___,___ } },
