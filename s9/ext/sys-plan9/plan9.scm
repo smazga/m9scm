@@ -126,3 +126,4 @@
   (error "not implemented"))
 
 (define (sys-plan9:sys-plan9) #t)
+
