@@ -1088,3 +1088,11 @@
                 (eq? 'or (caar x*))
                 (not (null? (isect (cdar x*) *extensions*)))))
           (else (set! na (cons (car x*) na))))))
+
+(define *__deferred* '())
+(define-syntax (defer func)
+	`(set! *__deferred* (append *__deferred* (list (quote ,func)))))
+(define (**run-deferred**)
+	(for-each (lambda (i)
+							(eval i))
+		(reverse *__deferred*)))
