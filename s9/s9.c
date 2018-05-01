@@ -4043,6 +4043,11 @@ cell get_args(char **argv) {
 	return Argv = unsave(1);
 }
 
+void cleanup(void) {
+	char cmd[] = "(**run-deferred**)";
+	evalstr(cmd, 0);
+}
+
 #ifndef EXTENSIONS
  #define EXTENSIONS
 #endif
@@ -4284,6 +4289,7 @@ int main(int argc, char **argv) {
 	argv0 = *argv++;
 	load_library(argv0);
 	init_extensions();
+	atexit(cleanup);
 	while (*argv != NULL && !f_opt && !arg_opt) {
 		if (**argv != '-')
 			break;

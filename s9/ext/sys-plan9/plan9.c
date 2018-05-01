@@ -59,6 +59,8 @@
 #include "s9-ffi.h"
 #include <fcall.h>
 #include <auth.h>
+#include <thread.h>
+#include <9p.h>
 
 #ifdef length
 #undef length
@@ -428,8 +430,9 @@ cell sys_convM2S(uchar* edir, int len) {
 	return n;
 }
 
+#ifdef FNORD
 int sys_convS2M(cell x, uchar*buf, int len) {
-	Fcall	*f = (Fcall*)&buf;
+	Fcall *f = (Fcall*)buf;
 	int	r, flen, i;
 	char	*b, *e;
 	cell	*v;
@@ -438,7 +441,7 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 	e = (char*)buf + len;
 	v = vector(x);
 	i = 2;
-	f->tag = make_ulong_integer(v[1]);
+	f->tag = ushort_value("sys:convS2M", v[1]);
 	if (v[0] == Tversion_sym) {
 		f->type = Tversion;
 		f->version = (char*)b;
@@ -503,9 +506,15 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 
 	} else if (v[0] == Rversion_sym) {
 		f->type = Rversion;
-		f->msize = make_ulong_integer(v[i++]);
+		f->fid = 0;
+		f->msize = uint32_value("sys:convS2M", v[i++]);
 		if (!(f->version = string2str(v[i], &b, e)))
 			return -1;
+		fprint(2, "type: %d\n", f->type);
+		fprint(2, "fid: %d\n", f->fid);
+		fprint(2, "tag: %d\n", f->tag);
+		fprint(2, "msize: %d\n", f->msize);
+		fprint(2, "version: %s\n", f->version);
 	} else if (v[0] == Rauth_sym) {
 		f->type = Rauth;
 	} else if (v[0] == Rattach_sym) {
@@ -533,12 +542,141 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f->type = Rstat;
 	} else if (v[0] == Rwstat_sym) {
 		f->type = Rwstat;
-	} else
+	} else {
+		fprint(2, "unknown tag: %d\n", v[0]);
 		return -1;
+	}
 	r = sizeS2M(f);
 	if (r > len)
 		return -1;
+	fprint(2, "calling convS2M\n");
 	convS2M(f, buf, len);
+	fprint(2, "returning\n");
+	return r;
+}
+#endif
+
+int sys_convS2M(cell x, uchar*buf, int len) {
+	Fcall f;
+	int	r, flen, i;
+	char *b, *e;
+	cell	*v;
+	
+	b = (char*)emalloc9p(1024);
+	e = (char*)buf + len;
+	v = vector(x);
+	i = 2;
+	f.tag = ushort_value("sys:convS2M", v[1]);
+	if (v[0] == Tversion_sym) {
+		f.type = Tversion;
+		f.version = (char*)b;
+		flen = string_len(v[i]);
+		strncpy(f.version, string(v[i]), flen);
+		f.version[flen++] = 0;
+		b += flen; i++;
+		f.msize = make_ulong_integer(v[i]);
+	} else if (v[0] == Tauth_sym) {
+		f.type = Tauth;
+		f.afid = make_ulong_integer(v[i++]);
+		if (!(f.uname = string2str(v[i++], &b, e)))
+			return -1;
+		if (!(f.aname = string2str(v[i], &b, e)))
+			return -1;
+	} else if (v[0] == Tattach_sym) {
+		f.type = Tattach;
+		f.fid = make_ulong_integer(v[i++]);
+		f.afid = make_ulong_integer(v[i++]);
+		if (!(f.uname = string2str(v[i++], &b, e)))
+			return -1;
+		if (!(f.aname = string2str(v[i], &b, e)))
+			return -1;
+	} else if (v[0] == Tflush_sym) {
+		f.type = Tflush;
+		f.oldtag = make_ulong_integer(v[i]);
+	} else if (v[0] == Twalk_sym) {
+		int j;
+		f.type = Twalk;
+		f.fid = make_ulong_integer(v[i++]);
+		f.newfid = make_ulong_integer(v[i++]);
+		/* XXX check vector */
+		f.nwname = vector_len(v[i]);
+		v = vector(v[i]);
+		for (j = 0; j < f.nwname; j++)
+			if (!(f.wname[j] = string2str(v[j], &b, e)))
+				return -1;
+	} else if (v[0] == Topen_sym) {
+		f.type = Topen;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Tcreate_sym) {
+		f.type = Tcreate;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Tread_sym) {
+		f.type = Tread;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Twrite_sym) {
+		f.type = Twrite;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Tclunk_sym) {
+		f.type = Tclunk;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Tremove_sym) {
+		f.type = Tremove;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Tstat_sym) {
+		f.type = Tstat;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Twstat_sym) {
+		f.type = Twstat;
+		f.fid = make_ulong_integer(v[i]);
+
+	} else if (v[0] == Rversion_sym) {
+		f.type = Rversion;
+		f.fid = 0;
+		f.msize = uint32_value("sys:convS2M", v[i++]);
+		if (!(f.version = string2str(v[i], &b, e)))
+			return -1;
+		fprint(2, "type: %d\n", f.type);
+		fprint(2, "fid: %d\n", f.fid);
+		fprint(2, "tag: %d\n", f.tag);
+		fprint(2, "msize: %d\n", f.msize);
+		fprint(2, "version: %s\n", f.version);
+	} else if (v[0] == Rauth_sym) {
+		f.type = Rauth;
+	} else if (v[0] == Rattach_sym) {
+		f.type = Rattach;
+	} else if (v[0] == Rerror_sym) {
+		f.type = Rerror;
+	} else if (v[0] == Rflush_sym) {
+		f.type = Rflush;
+	} else if (v[0] == Rwalk_sym) {
+		f.type = Rwalk;
+	} else if (v[0] == Ropen_sym) {
+		f.type = Ropen;
+	} else if (v[0] == Rcreate_sym) {
+		f.type = Rcreate;
+	} else if (v[0] == Rread_sym) {
+		f.type = Rread;
+	} else if (v[0] == Rwrite_sym) {
+		f.type = Rwrite;
+		f.fid = make_ulong_integer(v[i]);
+	} else if (v[0] == Rclunk_sym) {
+		f.type = Rclunk;
+	} else if (v[0] == Rremove_sym) {
+		f.type = Rremove;
+	} else if (v[0] == Rstat_sym) {
+		f.type = Rstat;
+	} else if (v[0] == Rwstat_sym) {
+		f.type = Rwstat;
+	} else {
+		fprint(2, "unknown tag: %d\n", v[0]);
+		return -1;
+	}
+	r = sizeS2M(&f);
+	if (r > len)
+		return -1;
+	fprint(2, "calling convS2M\n");
+	convS2M(&f, buf, len);
+	fprint(2, "returning\n");
 	return r;
 }
 
@@ -620,11 +758,10 @@ cell pp_sys_close(cell x) {
 }
 
 cell pp_sys_convD2M(cell x) {
-	uchar	buf[STATSIZE];
-	int	len = sys_convD2M(car(x), buf, STATSIZE);
+	uchar	buf[8192+IOHDRSZ];
+	int	len = sys_convD2M(car(x), buf, sizeof buf);
 	cell	n;
 
-	/* XXX check size */
 	if (len < 0)
 		return FALSE;
 	n = make_string("", len);
@@ -643,13 +780,18 @@ cell pp_sys_convM2D(cell x) {
 }
 
 cell pp_sys_convS2M(cell x) {
-	uchar	buf[STATSIZE];
-	int	len = sys_convS2M(car(x), buf, STATSIZE);
+	uchar	buf[8192+IOHDRSZ];
+	int	len = sys_convS2M(car(x), buf, sizeof buf);
+	cell	n;
+
 
 	/* XXX check size */
 	if (len < 0)
 		return FALSE;
-	return make_string((char*)buf, len);
+	n = make_string("", len);
+	memcpy(string(n), (char *)buf, len);
+	return n;
+/*	return make_string((char*)buf, len); */
 }
 
 cell pp_sys_convM2S(cell x) {
@@ -946,6 +1088,22 @@ cell pp_sys_pwrite(cell x) {
 	return make_long_integer(r);
 }
 
+cell pp_sys_read9pmsg(cell x) {
+	int fd, n;
+	uchar buf[8192+IOHDRSZ];
+	cell r;
+	char name[] = "sys:read9pmsg";
+
+	fd = integer_value(name, car(x));
+	n = read9pmsg(fd, buf, sizeof buf);
+	if (n < 0)
+		return sys_error(name, x);
+
+	r = make_string("", n);
+	memcpy(string(r), buf, n);
+	return r;
+}
+
 cell pp_sys_read(cell x) {
 	cell	buf, buf2;
 	int	r, k;
@@ -1208,6 +1366,7 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:pread",      pp_sys_pread,      3, 3, { INT,INT,INT } },
  {"sys:pwrite",     pp_sys_pwrite,     3, 3, { INT,STR,INT } },
  {"sys:read",       pp_sys_read,       2, 2, { INT,INT,___ } },
+ {"sys:read9pmsg",	pp_sys_read9pmsg,  1, 1, { INT,___,___ } },
  {"sys:remove",     pp_sys_remove,     1, 1, { STR,___,___ } },
  {"sys:rendezvous", pp_sys_rendezvous, 2, 2, { SYM,STR,___ } },
  {"sys:rfork",      pp_sys_rfork,      1, 1, { INT,___,___ } },

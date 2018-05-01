@@ -5,7 +5,7 @@
 ;; https://www.ietf.org/rfc/rfc4627.txt
 ;; inspired by: https://github.com/tqtifnypmb/scm-json
 
-;; (json-load string)      ==> list
+;; (json:load string)      ==> list
 ;;
 ;; JSON-LOAD takes a file (specified in STRING) and loads it into a list. JSON
 ;; types are represented with scheme types as follows:
