@@ -91,3 +91,16 @@ long int32_value(char *src, cell x) {
 	}
 	return w;
 }
+
+ushort ushort_value(char *src, cell x) {
+	long long v = int64_value(src, x);
+	long		w;
+	char		msg[128];
+
+	w = (ushort) v;
+	if (v != w) {
+		sprintf(msg, "%s: ushort too big", src);
+		error(msg, x);
+	}
+	return w;
+}

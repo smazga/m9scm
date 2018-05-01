@@ -1094,5 +1094,6 @@
 	`(set! *__deferred* (append *__deferred* (list (quote ,func)))))
 (define (**run-deferred**)
 	(for-each (lambda (i)
+							(format #t "running ~A~%" i)
 							(eval i))
 		(reverse *__deferred*)))
