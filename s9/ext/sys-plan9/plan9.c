@@ -430,132 +430,6 @@ cell sys_convM2S(uchar* edir, int len) {
 	return n;
 }
 
-#ifdef FNORD
-int sys_convS2M(cell x, uchar*buf, int len) {
-	Fcall *f = (Fcall*)buf;
-	int	r, flen, i;
-	char	*b, *e;
-	cell	*v;
-	
-	b = (char*)&f[1];
-	e = (char*)buf + len;
-	v = vector(x);
-	i = 2;
-	f->tag = ushort_value("sys:convS2M", v[1]);
-	if (v[0] == Tversion_sym) {
-		f->type = Tversion;
-		f->version = (char*)b;
-		flen = string_len(v[i]);
-		strncpy(f->version, string(v[i]), flen);
-		f->version[flen++] = 0;
-		b += flen; i++;
-		f->msize = make_ulong_integer(v[i]);
-	} else if (v[0] == Tauth_sym) {
-		f->type = Tauth;
-		f->afid = make_ulong_integer(v[i++]);
-		if (!(f->uname = string2str(v[i++], &b, e)))
-			return -1;
-		if (!(f->aname = string2str(v[i], &b, e)))
-			return -1;
-	} else if (v[0] == Tattach_sym) {
-		f->type = Tattach;
-		f->fid = make_ulong_integer(v[i++]);
-		f->afid = make_ulong_integer(v[i++]);
-		if (!(f->uname = string2str(v[i++], &b, e)))
-			return -1;
-		if (!(f->aname = string2str(v[i], &b, e)))
-			return -1;
-	} else if (v[0] == Tflush_sym) {
-		f->type = Tflush;
-		f->oldtag = make_ulong_integer(v[i]);
-	} else if (v[0] == Twalk_sym) {
-		int j;
-		f->type = Twalk;
-		f->fid = make_ulong_integer(v[i++]);
-		f->newfid = make_ulong_integer(v[i++]);
-		/* XXX check vector */
-		f->nwname = vector_len(v[i]);
-		v = vector(v[i]);
-		for (j = 0; j < f->nwname; j++)
-			if (!(f->wname[j] = string2str(v[j], &b, e)))
-				return -1;
-	} else if (v[0] == Topen_sym) {
-		f->type = Topen;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Tcreate_sym) {
-		f->type = Tcreate;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Tread_sym) {
-		f->type = Tread;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Twrite_sym) {
-		f->type = Twrite;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Tclunk_sym) {
-		f->type = Tclunk;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Tremove_sym) {
-		f->type = Tremove;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Tstat_sym) {
-		f->type = Tstat;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Twstat_sym) {
-		f->type = Twstat;
-		f->fid = make_ulong_integer(v[i]);
-
-	} else if (v[0] == Rversion_sym) {
-		f->type = Rversion;
-		f->fid = 0;
-		f->msize = uint32_value("sys:convS2M", v[i++]);
-		if (!(f->version = string2str(v[i], &b, e)))
-			return -1;
-		fprint(2, "type: %d\n", f->type);
-		fprint(2, "fid: %d\n", f->fid);
-		fprint(2, "tag: %d\n", f->tag);
-		fprint(2, "msize: %d\n", f->msize);
-		fprint(2, "version: %s\n", f->version);
-	} else if (v[0] == Rauth_sym) {
-		f->type = Rauth;
-	} else if (v[0] == Rattach_sym) {
-		f->type = Rattach;
-	} else if (v[0] == Rerror_sym) {
-		f->type = Rerror;
-	} else if (v[0] == Rflush_sym) {
-		f->type = Rflush;
-	} else if (v[0] == Rwalk_sym) {
-		f->type = Rwalk;
-	} else if (v[0] == Ropen_sym) {
-		f->type = Ropen;
-	} else if (v[0] == Rcreate_sym) {
-		f->type = Rcreate;
-	} else if (v[0] == Rread_sym) {
-		f->type = Rread;
-	} else if (v[0] == Rwrite_sym) {
-		f->type = Rwrite;
-		f->fid = make_ulong_integer(v[i]);
-	} else if (v[0] == Rclunk_sym) {
-		f->type = Rclunk;
-	} else if (v[0] == Rremove_sym) {
-		f->type = Rremove;
-	} else if (v[0] == Rstat_sym) {
-		f->type = Rstat;
-	} else if (v[0] == Rwstat_sym) {
-		f->type = Rwstat;
-	} else {
-		fprint(2, "unknown tag: %d\n", v[0]);
-		return -1;
-	}
-	r = sizeS2M(f);
-	if (r > len)
-		return -1;
-	fprint(2, "calling convS2M\n");
-	convS2M(f, buf, len);
-	fprint(2, "returning\n");
-	return r;
-}
-#endif
-
 int sys_convS2M(cell x, uchar*buf, int len) {
 	Fcall f;
 	int	r, flen, i;
@@ -567,6 +441,8 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 	v = vector(x);
 	i = 2;
 	f.tag = ushort_value("sys:convS2M", v[1]);
+
+/* T */
 	if (v[0] == Tversion_sym) {
 		f.type = Tversion;
 		f.version = (char*)b;
@@ -628,24 +504,22 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 	} else if (v[0] == Twstat_sym) {
 		f.type = Twstat;
 		f.fid = make_ulong_integer(v[i]);
-
+/* R */
 	} else if (v[0] == Rversion_sym) {
 		f.type = Rversion;
 		f.fid = 0;
 		f.msize = uint32_value("sys:convS2M", v[i++]);
 		if (!(f.version = string2str(v[i], &b, e)))
 			return -1;
-		fprint(2, "type: %d\n", f.type);
-		fprint(2, "fid: %d\n", f.fid);
-		fprint(2, "tag: %d\n", f.tag);
-		fprint(2, "msize: %d\n", f.msize);
-		fprint(2, "version: %s\n", f.version);
 	} else if (v[0] == Rauth_sym) {
 		f.type = Rauth;
 	} else if (v[0] == Rattach_sym) {
 		f.type = Rattach;
+		str2qid(string(vector(x)[i++]), &(f.qid));
 	} else if (v[0] == Rerror_sym) {
 		f.type = Rerror;
+		if (!(f.ename = string2str(v[i], &b, e)))
+			return -1;
 	} else if (v[0] == Rflush_sym) {
 		f.type = Rflush;
 	} else if (v[0] == Rwalk_sym) {
@@ -656,6 +530,10 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f.type = Rcreate;
 	} else if (v[0] == Rread_sym) {
 		f.type = Rread;
+		f.fid = make_ulong_integer(v[i++]);
+		if (!(f.data = string2str(v[i], &b, e)))
+			return -1;
+		f.count = strlen(f.data);
 	} else if (v[0] == Rwrite_sym) {
 		f.type = Rwrite;
 		f.fid = make_ulong_integer(v[i]);
@@ -674,9 +552,7 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 	r = sizeS2M(&f);
 	if (r > len)
 		return -1;
-	fprint(2, "calling convS2M\n");
 	convS2M(&f, buf, len);
-	fprint(2, "returning\n");
 	return r;
 }
 
@@ -784,14 +660,12 @@ cell pp_sys_convS2M(cell x) {
 	int	len = sys_convS2M(car(x), buf, sizeof buf);
 	cell	n;
 
-
 	/* XXX check size */
 	if (len < 0)
 		return FALSE;
 	n = make_string("", len);
 	memcpy(string(n), (char *)buf, len);
 	return n;
-/*	return make_string((char*)buf, len); */
 }
 
 cell pp_sys_convM2S(cell x) {

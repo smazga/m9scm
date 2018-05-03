@@ -2,30 +2,36 @@
 (load-from-library "simple-modules.scm")
 (load-from-library "hash-table.scm")
 
-(module 9p
-	; attrs: attach auth clone create flush open read remove stat write wstat walk walk1
+;(module 9p
+	; actions: attach auth clone create flush open read remove stat version write wstat walk walk1
 	(define-structure fs srvname funcs)
 	(define-structure fcall type tag fid (u1 '()) (u2 '()) (u3 '()))
 	(define msize 8192)
 	(define version "9P2000")
 
 	(define (handle f fc)
-		(let* ((ftype (symbol->string (fcall-type fc))
-					 (handler (hash-table-ref (fs-funcs) ftype)))
-					 (response (string-append "R" (substring ftype 1 (string-length ftype)))))
-			(if (not handler) (vector "Rerror")
-				(vector (append (list response (fcall-tag fc)) (handler))))))
+		(let* ((ftype (symbol->string (fcall-type fc)))
+					 (action (substring ftype 1 (string-length ftype)))
+					 (handler (hash-table-ref (fs-funcs f) action))
+					 (response (string->symbol (string-append "R" action))))
+			(format #t "action: ~A~%" action)
+			(if (not (list? handler)) (vector (string->symbol "Rerror") (fcall-tag fc)
+																	(format #f "unhandled function: ~A" action))
+				(list->vector (append (list response (fcall-tag fc)) ((car handler) fc))))))
 
-	(define* (srv f)
-		(let ((pipe (initsrv fs-srvname f))))
+	(define (register f action func)
+		(hash-table-set! (fs-funcs f) action func))
+
+	(define (srv f)
+		(let ((pipe (initsrv (fs-srvname f))))
 			(let loop ((msg (sys:read9pmsg pipe)))
 				(if (zero? (string-length msg)) (format #t "disconnected")
 					(let* ((fc (apply make-fcall (vector->list (sys:convM2S msg))))
 								 (result (handle f fc)))
 						(format #t "read: ~A~%" fc)
 						(format #t "result: ~A~%" result)
-						(sys:write pipe (sys:convS2M result))
-						(loop (sys:read9pmsg pipe))))))
+						(if (vector? result) (sys:write pipe (sys:convS2M result)))
+						(loop (sys:read9pmsg pipe)))))))
 	
 	(define (initsrv srvname)
 		(let* ((p (sys:pipe))
@@ -40,21 +46,24 @@
 			(sys:close ptmp)
 			pipe))
 
-	(define* (instance srvname)
-		(let ((f (make-fs srvname))
-					(h (make-hash-table)))
-			(hash-table-set! h "Tversion" (list msize version))
-			(format #t "f: ~A~%" f)
-			(format #t "h: ~A~%" h)
-			(fs-set-funcs! f h)))
+	(define (instance srvname)
+		(let ((f (make-fs srvname (make-hash-table))))
+			(register f "version" versionstub)
+;			(register f "auth" authstub)
+			f))
+
+	(define (versionstub fc) (list msize version))
+	(define (authstub fc) (list '() '()))
 
 
 (define-syntax 9p:fs
 	(lambda (srvname)
 		`(format #t "9p:fs: ~A~%" ,srvname)
-		`(using 9p (instance) (instance ,srvname))))
+		`(instance ,srvname)))
+;		`(using 9p (instance) (instance ,srvname))))
 
 (define-syntax 9p:srv
-	(lambda (fs)
-		`(format #t "9p:srv: ~A~%" ,fs)
-		`(using 9p (srv) (srv ,fs))))
+	(lambda (f)
+		(format #t "9p:srv: ~A~%" f)
+		`(srv ,f)))
+;		`(using 9p (srv) (srv ,f))))
