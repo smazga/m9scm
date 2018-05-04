@@ -350,15 +350,19 @@ cell sys_convM2S(uchar* edir, int len) {
 		v[4] = make_string(f->data, f->count);
 		break;
 	case Tclunk:
+		v[0] = Tclunk_sym;
 		v[2] = make_ulong_integer(f->fid);
 		break;
 	case Tremove:
+		v[0] = Tremove_sym;
 		v[2] = make_ulong_integer(f->fid);
 		break;
 	case Tstat:
+		v[0] = Tstat_sym;
 		v[2] = make_ulong_integer(f->fid);
 		break;
 	case Twstat:
+		v[0] = Twstat_sym;
 		v[2] = make_ulong_integer(f->fid);
 		v[3] = sys_convM2D(f->stat, f->nstat);
 		break;
@@ -427,6 +431,8 @@ cell sys_convM2S(uchar* edir, int len) {
 		break;
 	}
 	unsave(1);
+	
+	fprint(2, "convM2S: %F\n", f);
 	return n;
 }
 
@@ -474,7 +480,6 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f.type = Twalk;
 		f.fid = make_ulong_integer(v[i++]);
 		f.newfid = make_ulong_integer(v[i++]);
-		/* XXX check vector */
 		f.nwname = vector_len(v[i]);
 		v = vector(v[i]);
 		for (j = 0; j < f.nwname; j++)
@@ -515,7 +520,7 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f.type = Rauth;
 	} else if (v[0] == Rattach_sym) {
 		f.type = Rattach;
-		str2qid(string(vector(x)[i++]), &(f.qid));
+		str2qid(string(vector(x)[i]), &(f.qid));
 	} else if (v[0] == Rerror_sym) {
 		f.type = Rerror;
 		if (!(f.ename = string2str(v[i], &b, e)))
@@ -523,7 +528,13 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 	} else if (v[0] == Rflush_sym) {
 		f.type = Rflush;
 	} else if (v[0] == Rwalk_sym) {
+		int j;
 		f.type = Rwalk;
+		f.fid = 0;
+		f.nwqid = ushort_value("sys:convS2M", v[i++]);
+		v = vector(v[i]);
+		for (j = 0; j < f.nwqid; j++)
+			str2qid(string(v[j]), &(f.wqid[j]));
 	} else if (v[0] == Ropen_sym) {
 		f.type = Ropen;
 	} else if (v[0] == Rcreate_sym) {
@@ -549,6 +560,8 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		fprint(2, "unknown tag: %d\n", v[0]);
 		return -1;
 	}
+
+	fprint(2, "convS2M: %F\n", &f);
 	r = sizeS2M(&f);
 	if (r > len)
 		return -1;
@@ -1340,4 +1353,5 @@ void sys_init(void) {
 
 	s9_add_image_vars(Plan9_image_vars);
 	add_primitives("sys-plan9", Plan9_primitives);
+	fmtinstall('F', fcallfmt);
 }

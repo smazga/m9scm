@@ -3,17 +3,19 @@
 (load-from-library "hash-table.scm")
 
 ;(module 9p
-	; actions: attach auth clone create flush open read remove stat version write wstat walk walk1
+	; actions: attach auth clone create flush open read remove stat version write wstat walk
 	(define-structure fs srvname funcs)
-	(define-structure fcall type tag fid (u1 '()) (u2 '()) (u3 '()))
+	(define-structure fcall action tag fid (u1 '()) (u2 '()) (u3 '()))
 	(define msize 8192)
 	(define version "9P2000")
 
 	(define (handle f fc)
-		(let* ((ftype (symbol->string (fcall-type fc)))
+		(let* ((x (format #t "handle::~A~%" fc))
+					 (ftype (symbol->string (fcall-action fc)))
 					 (action (substring ftype 1 (string-length ftype)))
 					 (handler (hash-table-ref (fs-funcs f) action))
 					 (response (string->symbol (string-append "R" action))))
+			(format #t "read: ~A~%" fc)
 			(format #t "action: ~A~%" action)
 			(if (not (list? handler)) (vector (string->symbol "Rerror") (fcall-tag fc)
 																	(format #f "unhandled function: ~A" action))
@@ -28,7 +30,6 @@
 				(if (zero? (string-length msg)) (format #t "disconnected")
 					(let* ((fc (apply make-fcall (vector->list (sys:convM2S msg))))
 								 (result (handle f fc)))
-						(format #t "read: ~A~%" fc)
 						(format #t "result: ~A~%" result)
 						(if (vector? result) (sys:write pipe (sys:convS2M result)))
 						(loop (sys:read9pmsg pipe)))))))
@@ -49,7 +50,6 @@
 	(define (instance srvname)
 		(let ((f (make-fs srvname (make-hash-table))))
 			(register f "version" versionstub)
-;			(register f "auth" authstub)
 			f))
 
 	(define (versionstub fc) (list msize version))
