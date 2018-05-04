@@ -1,6 +1,9 @@
 /*
  * Scheme 9 from Empty Space, Refactored
  * By Nils M Holm, 2007-2017
+ *
+ * Martian Edition
+ * By McKay Marston, 2017-?
  * In the public domain
  */
 
@@ -4197,6 +4200,8 @@ void long_usage(void) {
 	prints("Scheme 9 from Empty Space by Nils M Holm, ");
 	prints(VERSION);
 	nl();
+	prints("Martian Edition");
+	nl();
 	prints("");
 #ifdef unix
 	prints("unix");
@@ -4388,7 +4393,7 @@ int main(int argc, char **argv) {
 	}
 	box_value(S_arguments) = get_args(argv);
 	if (!Quiet_mode)
-		prints("Scheme 9 from Empty Space\n");
+		prints("Scheme 9 from Empty Space\nMartian Edition\n");
 	repl();
 	return 0;
 }
