@@ -1,5 +1,4 @@
-# Scheme 9 From Empty Space for 9front #
-# Martian Edition #
+# Scheme 9 From Empty Space, Martian Edition #
 
 This is the source for [s9fes](http://www.t3x.org/s9fes) with patches to make it build on [9front](http://www.9front.org) plus some extras.
 
