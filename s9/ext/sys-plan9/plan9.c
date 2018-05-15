@@ -228,49 +228,72 @@ int sys_convD2M(cell x, uchar* buf, int len) {
 	int	r;
 	char	*b, *e;
 	int	i;
+	char *error;
+	
+#define FAIL(e) { error = e; goto convD2Mout; }
+	
+	/* vector: (type, dev, qid, mode, atime, mtime, length, name, uid, gid, muid) */
 
 	d = (Dir*)tmp;
 	b = tmp + sizeof *d;
 	e = tmp + sizeof tmp;
 	memset(d, 0, sizeof *d);
 	if (vector(x)[0] != dir_sym)
-		return -1;
+		FAIL("vector not a dir");
+
 	i = 1;
 	if (!integer_p(vector(x)[i]))
-		return -1;
+		FAIL("type not an integer");
 	d->type = integer_value(name, vector(x)[i++]);
+
 	if (!integer_p(vector(x)[i]))
-		return -1;
+		FAIL("dev not an integer");
 	d->dev = int32_value(name, vector(x)[i++]);
-	if (	!string_p(vector(x)[i]) ||
-		str2qid(string(vector(x)[i++]), &d->qid)
-	)
-		return -1;
+	
+	if (!string_p(vector(x)[i]) ||
+		str2qid(string(vector(x)[i++]), &d->qid))
+		FAIL("couldn't parse qid");
+
 	if (!integer_p(vector(x)[i]))
-		return -1;
+		FAIL("mode not an integer");
 	d->mode = uint32_value(name, vector(x)[i++]);
+
 	if (!integer_p(vector(x)[i]))
-		return -1;
+		FAIL("atime not an integer");
 	d->atime = uint32_value(name, vector(x)[i++]);
+
 	if (!integer_p(vector(x)[i]))
-		return -1;
+		FAIL("mtime not an integer");
 	d->mtime = uint32_value(name, vector(x)[i++]);
+
 	if (!integer_p(vector(x)[i]))
-		return -1;
+		FAIL("length not an integer");
 	d->length = uint64_value(name, vector(x)[i++]);
+
 	if (!(d->name = string2str(vector(x)[i++], &b, e)))
-		return -1;
+		FAIL("unable to parse name");
+
 	if (!(d->uid = string2str(vector(x)[i++], &b, e)))
-		return -1;
+		FAIL("unable to parse uid");
+
 	if (!(d->gid = string2str(vector(x)[i++], &b, e)))
-		return -1;
+		FAIL("unable to parse gid");
+
 	if (!(d->muid = string2str(vector(x)[i], &b, e)))
-		return -1;
+		FAIL("unable to parse muid");
+
 	r = sizeD2M(d);
 	if (r > len)
-		return -1;
+		FAIL("invalid dir size");
+
 	convD2M(d, buf, r);
+	fprint(2, "sys_convD2M: %D\n", d);
 	return r;
+
+convD2Mout:
+	if (1) fprint(2, "sys_convD2M parse error: %s\n", error);
+	return -1;
+#undef FAIL
 }
 
 cell sys_convM2S(uchar* edir, int len) {
@@ -554,6 +577,17 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f.type = Rremove;
 	} else if (v[0] == Rstat_sym) {
 		f.type = Rstat;
+		f.nstat = vector_len(v[i]);
+		fprint(2, "i: %d  nstat: %d (size: %d)\n", i, f.nstat, f.nstat * sizeof(Dir));
+		f.stat = (uchar *)emalloc9p(f.nstat * sizeof(Dir));
+
+		v = vector(v[i]);
+		for (i = 0; i < f.nstat; i++) {
+			if(sys_convD2M(v[i], &(f.stat[i]), sizeof(Dir)) < 0)
+				fprint(2, "failed to convert %d\n", i);
+			else
+				fprint(2, "convS2M: convD2M: %D\n", (Dir)f.stat[i]);
+		}
 	} else if (v[0] == Rwstat_sym) {
 		f.type = Rwstat;
 	} else {
@@ -1353,5 +1387,8 @@ void sys_init(void) {
 
 	s9_add_image_vars(Plan9_image_vars);
 	add_primitives("sys-plan9", Plan9_primitives);
+
+	fmtinstall('M', dirmodefmt);
 	fmtinstall('F', fcallfmt);
+	fmtinstall('D', dirfmt);
 }

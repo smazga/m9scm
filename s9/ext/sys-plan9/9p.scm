@@ -6,8 +6,26 @@
 	; actions: attach auth clone create flush open read remove stat version write wstat walk
 	(define-structure fs srvname funcs)
 	(define-structure fcall action tag fid (u1 '()) (u2 '()) (u3 '()))
+	(define-structure dir
+		(type 0) (dev 0) (qid "") (mode 0) (atime 0) (mtime 0)
+		(length 0) (name "") (uid "nobody") (gid "nobody") (muid "nobody"))
+
 	(define msize 8192)
 	(define version "9P2000")
+	
+	(define (stat d)
+		(vector (string->symbol "dir")
+						(dir-type d)
+						(dir-dev d)
+						(dir-qid d)
+						(dir-mode d)
+						(dir-atime d)
+						(dir-mtime d)
+						(dir-length d)
+						(dir-name d)
+						(dir-uid d)
+						(dir-gid d)
+						(dir-muid d)))
 
 	(define (handle f fc)
 		(let* ((x (format #t "handle::~A~%" fc))
