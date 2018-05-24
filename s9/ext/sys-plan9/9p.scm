@@ -10,6 +10,12 @@
 		(type 0) (dev 0) (qid "") (mode 0) (atime 0) (mtime 0)
 		(length 0) (name "") (uid "nobody") (gid "nobody") (muid "nobody"))
 
+	(define (register-dir table path name mode type)
+		(let ((d (make-dir)))
+			(dir-set-qid! d (format #f "~X:~X:~X" path mode type))
+			(dir-set-name! d name)
+			(hash-table-set! table path d)))
+
 	(define msize 8192)
 	(define version "9P2000")
 	
