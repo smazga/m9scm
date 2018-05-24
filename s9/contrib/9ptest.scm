@@ -2,7 +2,10 @@
 (load-from-library "hash-table.scm")
 
 (define *9p:buffers* (make-hash-table))
-(define *root-qid* (format #f "0:0:~X" sys:QTDIR))
+(define *9p:qids* (make-hash-table))
+
+(register-dir *9p:qids* 0 "" 0 sys:QTDIR)
+(register-dir *9p:qids* 1 "ctl" #o0666 sys:QTFILE)
 
 (define (fsread fc)
   (let* ((fid (fcall-fid fc))
@@ -17,18 +20,18 @@
         (begin (hash-table-set! *9p:buffers* fid "hello")
                (fsread fc)))))
 
-(define (fsattach fc) (list *root-qid*))
+(define (fsattach fc) (list (dir-qid (car (hash-table-ref *9p:qids* 0)))))
+
 (define (fswalk fc)
 	(let ((paths (vector->list (fcall-u2 fc))))
 		(format #t "paths: ~A~%" paths)
 		(if (null? paths) (list 0 (vector))
 			(format #t "failure~%"))))
+
 (define (fsstat fc)
-	(let ((d (make-dir)))
-		(dir-set-qid! d (format #f "1:~X:~X" #o0666 sys:QTFILE))
-		(dir-set-mode! d #o0666)
-		(dir-set-name! d "ctl")
-		(list (vector (stat d)))))
+	(let ((d (hash-table-ref *9p:qids* (fcall-u1 fc))))
+		(if (not d) (list (vector (stat (car (hash-table-ref *9p:qids* 0)))))
+			(list (vector (stat d))))))
 
 (format #t "init~%")
 (define fs (instance "fnord"))

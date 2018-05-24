@@ -229,10 +229,9 @@ int sys_convD2M(cell x, uchar* buf, int len) {
 	char	*b, *e;
 	int	i;
 	char *error;
-	
+
+	/* vector: (type, qid, qid, mode, atime, mtime, length, name, uid, gid, muid) */
 #define FAIL(e) { error = e; goto convD2Mout; }
-	
-	/* vector: (type, dev, qid, mode, atime, mtime, length, name, uid, gid, muid) */
 
 	d = (Dir*)tmp;
 	b = tmp + sizeof *d;
@@ -283,8 +282,10 @@ int sys_convD2M(cell x, uchar* buf, int len) {
 		FAIL("unable to parse muid");
 
 	r = sizeD2M(d);
-	if (r > len)
+	if (r > len) {
+		fprint(2, "r(%d) > len(%d)\n", r, len);
 		FAIL("invalid dir size");
+}
 
 	convD2M(d, buf, r);
 	fprint(2, "sys_convD2M: %D\n", d);
@@ -577,17 +578,23 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f.type = Rremove;
 	} else if (v[0] == Rstat_sym) {
 		f.type = Rstat;
-		f.nstat = vector_len(v[i]);
-		fprint(2, "i: %d  nstat: %d (size: %d)\n", i, f.nstat, f.nstat * sizeof(Dir));
-		f.stat = (uchar *)emalloc9p(f.nstat * sizeof(Dir));
-
+		f.stat = (uchar *)emalloc9p(1024); /* see aux/searchfs.c */
+		
+		v = vector(v[i]);
+		f.nstat = sys_convD2M(v[0], f.stat, 1024);
+#ifdef NOTHING
 		v = vector(v[i]);
 		for (i = 0; i < f.nstat; i++) {
+			Dir d;
+			memset(&d, 0, sizeof(d));
 			if(sys_convD2M(v[i], &(f.stat[i]), sizeof(Dir)) < 0)
 				fprint(2, "failed to convert %d\n", i);
-			else
-				fprint(2, "convS2M: convD2M: %D\n", (Dir)f.stat[i]);
+			else {
+				memcpy(&(f.stat[i]), &d, sizeof(d));
+				fprint(2, "convS2M: convD2M: %D\n", d);
+			}
 		}
+#endif
 	} else if (v[0] == Rwstat_sym) {
 		f.type = Rwstat;
 	} else {
