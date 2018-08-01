@@ -44,7 +44,7 @@
 		":ext/csv"	\
 		":ext/plan9"	\
 		":contrib"	\
-		":~/lib/s9fes"
+		":/lib/s9fes"
  #endif
 #endif
 

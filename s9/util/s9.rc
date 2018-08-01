@@ -5,7 +5,7 @@
 # based on a script in this article:
 # http://ninetimes.cat-v.org/tips/2009/07/19/0/
 
-s9dir=$home/lib/s9fes
+s9dir=/lib/s9fes
 
 mkdir -p $home/lib/s9fes
 
