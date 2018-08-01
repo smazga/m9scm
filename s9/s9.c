@@ -8,6 +8,7 @@
  */
 
 #define VERSION "2017-11-09"
+#define MARS "Martian Take 0000"
 
 #include "s9core.h"
 #include "s9import.h"
@@ -4200,7 +4201,7 @@ void long_usage(void) {
 	prints("Scheme 9 from Empty Space by Nils M Holm, ");
 	prints(VERSION);
 	nl();
-	prints("Martian Edition");
+	prints(MARS);
 	nl();
 	prints("");
 #ifdef unix
@@ -4393,7 +4394,7 @@ int main(int argc, char **argv) {
 	}
 	box_value(S_arguments) = get_args(argv);
 	if (!Quiet_mode)
-		prints("Scheme 9 from Empty Space\nMartian Edition\n");
+		prints("Scheme 9 from Empty Space\n"MARS"\n");
 	repl();
 	return 0;
 }
