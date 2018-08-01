@@ -555,7 +555,7 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		int j;
 		f.type = Rwalk;
 		f.fid = 0;
-		f.nwqid = ushort_value("sys:convS2M", v[i++]);
+		f.nwqid = vector_len(v[i]);
 		v = vector(v[i]);
 		for (j = 0; j < f.nwqid; j++)
 			str2qid(string(v[j]), &(f.wqid[j]));
@@ -566,9 +566,12 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 	} else if (v[0] == Rread_sym) {
 		f.type = Rread;
 		f.fid = make_ulong_integer(v[i++]);
-		if (!(f.data = string2str(v[i], &b, e)))
+		if (!(f.data = string2str(v[i], &b, e))) {
+			fprint(2, "convS2M: failed to parse data\n");
 			return -1;
+		}
 		f.count = strlen(f.data);
+		fprint(2, "convS2M: f.data: %s\n", f.data);
 	} else if (v[0] == Rwrite_sym) {
 		f.type = Rwrite;
 		f.fid = make_ulong_integer(v[i]);
