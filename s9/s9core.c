@@ -2475,7 +2475,6 @@ static char *expected(int n, cell who, char *what) {
 	static char	msg[100];
 	S9_PRIM		*p;
 
-	USED(got);
 	p = &Primitives[cadr(who)];
 	sprintf(msg, "%s: expected %s in argument #%d", p->name, what, n);
 	return msg;
