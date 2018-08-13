@@ -15,6 +15,9 @@
 #include <thread.h>
 #include <9p.h>
 
+cell pp_9p_fsreader(cell x) {
+};
+
 cell pp_sys_postmountsrv(cell x ) {
 	cell srv;
 	char *sname, *mtpt;
