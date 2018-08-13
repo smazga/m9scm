@@ -547,13 +547,13 @@
           (else
             (exp (* y (log x)))))))
 
-(define (round x)
-  (let ((x+ (+ 0.5 x)))
-    (let ((rx (floor x+)))
-      (if (and (odd? (inexact->exact rx))
-               (= x+ rx))
-          (- rx 1)
-          rx))))
+; (define (round x)
+;   (let ((x+ (+ 0.5 x)))
+;     (let ((rx (floor x+)))
+;       (if (and (odd? (inexact->exact rx))
+;                (= x+ rx))
+;           (- rx 1)
+;           rx))))
 
 (define (exp x)
   (letrec
@@ -1091,9 +1091,9 @@
 
 (define *__deferred* '())
 (define-syntax (defer func)
-	`(set! *__deferred* (append *__deferred* (list (quote ,func)))))
+  `(set! *__deferred* (append *__deferred* (list (quote ,func)))))
 (define (**run-deferred**)
-	(for-each (lambda (i)
-							(format #t "running ~A~%" i)
-							(eval i))
-		(reverse *__deferred*)))
+  (for-each (lambda (i)
+	      (format #t "running ~A~%" i)
+	      (eval i))
+	    (reverse *__deferred*)))
