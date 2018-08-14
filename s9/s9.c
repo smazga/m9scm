@@ -1,13 +1,10 @@
 /*
  * Scheme 9 from Empty Space, Refactored
- * By Nils M Holm, 2007-2017
- *
- * Martian Edition
- * By McKay Marston, 2017-?
+ * By Nils M Holm, 2007-2018
  * In the public domain
  */
 
-#define VERSION "2017-11-09"
+#define VERSION "2018-08-01"
 #define MARS "Martian Take 0000"
 
 #include "s9core.h"
@@ -226,6 +223,7 @@ cell error(char *msg, cell expr) {
 	oport = output_port();
 	set_output_port(Quiet_mode? 2: 1);
 	Error_flag = 1;
+	Error = 1;
 	prints("error: ");
 	if (Load_level) {
 		if (File_list != NIL) {
@@ -282,10 +280,6 @@ cell read_list(int flags, int delim) {
 		}
 		n = read_form(flags);
 		if (n == END_OF_FILE)  {
-			if (Load_level) {
-				unsave(1);
-				return END_OF_FILE;
-			}
 			sprintf(msg, "missing ')', started in line %d",
 					Opening_line);
 			error(msg, VOID);
@@ -2190,15 +2184,11 @@ cell pp_inexact_p(cell x) {
 }
 
 cell pp_inexact_to_exact(cell x) {
-	cell	n;
-
 	x = car(x);
 	if (integer_p(x))
 		return x;
-	n = real_to_bignum(x);
-	if (n != NIL)
-		return n;
-	return error("inexact->exact: no exact representation for", x);
+	x = real_round(x);
+	return real_to_bignum(x);
 }
 
 cell pp_mantissa(cell x) {
@@ -2207,6 +2197,10 @@ cell pp_mantissa(cell x) {
 
 cell pp_real_p(cell x) {
 	return number_p(car(x))? TRUE: FALSE;
+}
+
+cell pp_round(cell x) {
+	return real_round(car(x));
 }
 
 cell pp_truncate(cell x) {
@@ -2328,7 +2322,9 @@ cell pp_string_p(cell x) {
 }
 
 cell pp_symbol_to_string(cell x) {
-	return symbol_to_string(car(x));
+	x = symbol_to_string(car(x));
+	tag(x) |= S9_CONST_TAG;
+	return x;
 }
 
 cell pp_symbol_p(cell x) {
@@ -2849,7 +2845,7 @@ cell pp_open_input_file(cell x) {
 cell pp_open_output_file(cell x) {
 	int	p;
 
-	p = open_output_port(string(car(x)), cdr(x));
+	p = open_output_port(string(car(x)), 0);
 	if (p < 0)
 		return error("open-output-file: could not open file",
 				car(x));
@@ -3269,7 +3265,7 @@ S9_PRIM Core_primitives[] = {
  { "null?",               pp_null_p,              1,  1, { ___,___,___ } },
  { "odd?",                pp_odd_p,               1,  1, { REA,___,___ } },
  { "open-input-file",     pp_open_input_file,     1,  1, { STR,___,___ } },
- { "open-output-file",    pp_open_output_file,    1,  2, { STR,INT,___ } },
+ { "open-output-file",    pp_open_output_file,    1,  1, { STR,___,___ } },
  { "output-port?",        pp_output_port_p,       1,  1, { ___,___,___ } },
  { "pair?",               pp_pair_p,              1,  1, { ___,___,___ } },
  { "peek-char",           pp_peek_char,           0,  1, { INP,___,___ } },
@@ -3282,6 +3278,7 @@ S9_PRIM Core_primitives[] = {
  { "remainder",           pp_remainder,           2,  2, { REA,REA,___ } },
  { "reverse",             pp_reverse,             1,  1, { LST,___,___ } },
  { "reverse!",            pp_reverse_b,           1,  1, { LST,___,___ } },
+ { "round",               pp_round,               1,  1, { REA,___,___ } },
  { "set-car!",            pp_set_car_b,           2,  2, { PAI,___,___ } },
  { "set-cdr!",            pp_set_cdr_b,           2,  2, { PAI,___,___ } },
  { "set-input-port!",     pp_set_input_port_b,    1,  1, { INP,___,___ } },
@@ -4070,9 +4067,9 @@ void make_initial_env(void) {
 	Environment = extend(symbol_ref("*arguments*"), NIL, Environment);
 	S_arguments = cadr(Environment);
 	Environment = extend(symbol_ref("*epsilon*"), Epsilon, Environment);
-	Environment = extend(symbol_ref("*extensions*"), NIL, Environment);
+        Environment = extend(symbol_ref("*extensions*"), NIL, Environment);
 	S_extensions = cadr(Environment);
-	Environment = extend(symbol_ref("*host-system*"), NIL, Environment);
+        Environment = extend(symbol_ref("*host-system*"), NIL, Environment);
 	S_host_system = cadr(Environment);
 #ifdef unix
 	box_value(S_host_system) = symbol_ref("unix");
@@ -4087,7 +4084,7 @@ void make_initial_env(void) {
 	S_library_path = cadr(Environment);
 	new = get_library_path();
 	box_value(S_library_path) = new;
-	Environment = extend(symbol_ref("*loading*"), FALSE, Environment);
+        Environment = extend(symbol_ref("*loading*"), FALSE, Environment);
 	S_loading = cadr(Environment);
 	Apply_magic = -1;
 	Callcc_magic = -1;
@@ -4367,6 +4364,7 @@ int main(int argc, char **argv) {
 			case 'u':
 				set_node_limit(0);
 				set_vector_limit(0);
+				(*argv)++;
 				break;
 			case 'h':
 			case 'v':

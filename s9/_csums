@@ -1,10 +1,10 @@
-49781 1 ./TODO
-62833 94 ./s9.c
+3386 1 ./TODO
+19619 94 ./s9.c
 20304 1 ./ABOUT
-160 35 ./s9.scm
-60363 15 ./s9core.h
+18959 35 ./s9.scm
+20933 15 ./s9core.h
 10174 19 ./s9.1.txt
-32621 2 ./LICENSE
+40404 2 ./LICENSE
 41089 38 ./contrib/format.scm
 10781 11 ./contrib/format.txt
 39931 9 ./contrib/format-test.scm
