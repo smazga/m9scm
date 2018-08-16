@@ -41,6 +41,7 @@
 					 (response (string->symbol (string-append "R" action))))
 			(format #t "read: ~A~%" fc)
 			(format #t "action: ~A~%" action)
+			(format #t "fid: ~A~%" (fcall-fid fc))
 			(if (not (list? handler)) (vector (string->symbol "Rerror") (fcall-tag fc)
 																	(format #f "unhandled function: ~A" action))
 				(list->vector (append (list response (fcall-tag fc)) ((car handler) fc))))))
