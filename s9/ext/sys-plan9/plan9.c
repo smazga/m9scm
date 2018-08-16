@@ -76,6 +76,7 @@
 
 static cell	New_node;
 #define assign(n,v)	{ New_node = v; n = New_node; }
+#define MSGSIZE 1024
 
 char	Last_errstr[ERRMAX];
 cell	Catch_errors = 0;
@@ -565,13 +566,14 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f.type = Rcreate;
 	} else if (v[0] == Rread_sym) {
 		f.type = Rread;
-		f.fid = make_ulong_integer(v[i++]);
-		if (!(f.data = string2str(v[i], &b, e))) {
-			fprint(2, "convS2M: failed to parse data\n");
-			return -1;
+		f.fid = uint32_value("sys:convS2M", v[i++]);
+		f.data = (char *)emalloc9p(MSGSIZE);
+		f.count = sys_convD2M(v[i], (uchar*)f.data, MSGSIZE);
+		fprint(2, "convS2M: f.data: %s (count: %d)\n", f.data, f.count);
+		if(f.count == -1) {
+			memset(f.data, 0, MSGSIZE);
+			f.count = 0;
 		}
-		f.count = strlen(f.data);
-		fprint(2, "convS2M: f.data: %s\n", f.data);
 	} else if (v[0] == Rwrite_sym) {
 		f.type = Rwrite;
 		f.fid = make_ulong_integer(v[i]);

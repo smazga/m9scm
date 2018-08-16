@@ -29,12 +29,13 @@
 (define (fsread fc)
 	(let* ((fid (fcall-fid fc))
 				 (offset (fcall-u1 fc))
-				 (qid (sys:convD2M (stat (car (hash-table-ref *9p:qids* 0))))))
+				 (qid (stat (car (hash-table-ref *9p:qids* 0)))))
 				 (format #t "type of qid: ~A~%" (type-of qid))
 				 (format #t "qid: ~A~%" qid)
 				 (format #t "offset: ~A~%" offset)
+				 (format #t "fsread fid: ~A~%" fid)
 				 (if (> offset 0) '(0 "")
-				 	(list qid))))
+				 	(list fid qid))))
 
 (define (fsattach fc) (list (dir-qid (car (hash-table-ref *9p:qids* 0)))))
 
