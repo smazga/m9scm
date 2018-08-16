@@ -2,7 +2,7 @@
 
 This is the source for [s9fes](http://www.t3x.org/s9fes) with patches to make it build on [9front](http://www.9front.org) plus some extras.
 
-*last upstream sync* 20171109
+*last upstream sync* 20180801
 
 Note: The plan9 "sys:" stuff isn't fully documented (yet).
 
