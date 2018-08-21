@@ -13,19 +13,6 @@
 ;;   * currently getting back bogus info for read()...I think it wants a Dir or something
 ;;   * /sys/src/cmd/aux/searchfs.c is a good reference
 
-;;(define (fsread fc)
-;;  (let* ((fid (fcall-fid fc))
-;;         (offset (fcall-u1 fc))
-;;         (msg (hash-table-ref *9p:buffers* fid)))
-;;    (if msg
-;;        (let* ((m (car msg))
-;;               (length (string-length m)))
-;;          (if (< offset length)
-;;              (list fid (substring m offset length))
-;;              (list (fcall-fid fc) "")))
-;;        (begin (hash-table-set! *9p:buffers* fid "hello")
-;;               (fsread fc)))))
-
 (define (fsread fc)
 	(let* ((fid (fcall-fid fc))
 				 (offset (fcall-u1 fc))

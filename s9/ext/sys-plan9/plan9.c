@@ -286,7 +286,7 @@ int sys_convD2M(cell x, uchar* buf, int len) {
 	if (r > len) {
 		fprint(2, "r(%d) > len(%d)\n", r, len);
 		FAIL("invalid dir size");
-}
+	}
 
 	convD2M(d, buf, r);
 	fprint(2, "sys_convD2M: %D\n", d);
@@ -457,7 +457,7 @@ cell sys_convM2S(uchar* edir, int len) {
 	}
 	unsave(1);
 	
-	fprint(2, "convM2S: %F\n", f);
+	/* fprint(2, "convM2S: %F\n", f); */
 	return n;
 }
 
@@ -569,7 +569,7 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		f.fid = uint32_value("sys:convS2M", v[i++]);
 		f.data = (char *)emalloc9p(MSGSIZE);
 		f.count = sys_convD2M(v[i], (uchar*)f.data, MSGSIZE);
-		fprint(2, "convS2M: f.data: %s (count: %d)\n", f.data, f.count);
+		/* fprint(2, "convS2M: f.data: %s (count: %d)\n", f.data, f.count); */
 		if(f.count == -1) {
 			memset(f.data, 0, MSGSIZE);
 			f.count = 0;
@@ -607,7 +607,7 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		return -1;
 	}
 
-	fprint(2, "convS2M: %F\n", &f);
+	/* fprint(2, "convS2M: %F\n", &f); */
 	r = sizeS2M(&f);
 	if (r > len)
 		return -1;
