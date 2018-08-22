@@ -2,19 +2,27 @@
 (load-from-library "simple-modules.scm")
 (load-from-library "hash-table.scm")
 
-(module 9p
+;(module 9p
   ;; actions: attach auth clone create flush open read remove stat version write wstat walk
   (define-structure fs srvname funcs)
   (define-structure fcall action tag fid (u1 '()) (u2 '()) (u3 '()))
   (define-structure dir
-    (type 0) (dev 0) (qid "") (mode 0) (atime 0) (mtime 0)
-    (length 0) (name "") (uid "nobody") (gid "nobody") (muid "nobody"))
+    (type 0) (dev 0) (qid "") (mode 0) (atime 0) (mtime 0) (length 0)
+    (name "") (uid "nobody") (gid "nobody") (muid "nobody") (contents '())
+    (msg ""))
+    ;; TODO: it's silly to store the converted message here and convert it in sys_convS2M
+    ;; but we do it to be able to understand the offsets
 
-  (define (register-dir table path name mode type)
+  (define (register-dir table path name mode type contents)
     (let ((d (make-dir)))
       (dir-set-qid! d (format #f "~X:~X:~X" path mode type))
       (dir-set-name! d name)
+      (dir-set-contents! d contents)
+      (dir-set-msg! d (sys:convD2M (stat d)))
       (hash-table-set! table path d)))
+
+  (define (get-dir table path)
+  	(car (hash-table-ref table path)))
 
   (define msize 8192)
   (define version "9P2000")
@@ -80,7 +88,7 @@
 
   (define (versionstub fc) (list msize version))
   (define (authstub fc) (list '() '()))
-)
+;)
 
 (define-syntax 9p:fs
   (lambda (srvname)
