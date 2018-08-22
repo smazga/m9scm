@@ -6,8 +6,8 @@
 (define *9p:buffers* (make-hash-table))
 (define *9p:qids* (make-hash-table))
 
-(register-dir *9p:qids* 0 "foo" #o0666 sys:QTDIR)
-(register-dir *9p:qids* 1 "ctl" #o0666 sys:QTFILE)
+(register-dir *9p:qids* 0 "foo" #o0666 sys:QTDIR '())
+(register-dir *9p:qids* 1 "ctl" #o0666 sys:QTFILE "content")
 
 ;; NOTES:
 ;;   * currently getting back bogus info for read()...I think it wants a Dir or something
@@ -16,13 +16,13 @@
 (define (fsread fc)
 	(let* ((fid (fcall-fid fc))
 				 (offset (fcall-u1 fc))
-				 (qid (stat (car (hash-table-ref *9p:qids* 0)))))
+				 (qid (get-dir *9p:qids* 0)))
 				 (format #t "type of qid: ~A~%" (type-of qid))
 				 (format #t "qid: ~A~%" qid)
 				 (format #t "offset: ~A~%" offset)
-				 (format #t "fsread fid: ~A~%" fid)
-				 (if (> offset 0) '(0 "")
-				 	(list fid qid))))
+				 ;;(format #t "fsread fid: ~A~%" fid)
+				 (if (>= offset (string-length (dir-msg qid))) '(0 "")
+				 	(list fid (stat qid)))))
 
 (define (fsattach fc) (list (dir-qid (car (hash-table-ref *9p:qids* 0)))))
 
