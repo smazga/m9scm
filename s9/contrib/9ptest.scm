@@ -1,13 +1,17 @@
 (load-from-library "9p.scm")
-(load-from-library "hash-table.scm")
+;;(load-from-library "hash-table.scm")
 (load-from-library "id.scm")
 (load-from-library "type-case.scm")
 
 (define *9p:buffers* (make-hash-table))
 (define *9p:qids* (make-hash-table))
 
-(register-dir *9p:qids* 0 "foo" #o0666 sys:QTDIR '())
-(register-dir *9p:qids* 1 "ctl" #o0666 sys:QTFILE "content")
+(define *9p:tree*
+	(9p:root "/" #o0666
+		(9p:dir "foo" #o0666
+			(9p:file "bar" #o0666 "file contents")
+			(9p:file "bar2" #o0666 "file2 contents"))
+		(9p:file "baz" #o0666 "more file contents")))
 
 ;; NOTES:
 ;;   * currently getting back bogus info for read()...I think it wants a Dir or something
@@ -16,7 +20,7 @@
 (define (fsread fc)
 	(let* ((fid (fcall-fid fc))
 				 (offset (fcall-u1 fc))
-				 (qid (get-dir *9p:qids* 0)))
+				 (qid (get-entry 0)))
 				 (format #t "type of qid: ~A~%" (type-of qid))
 				 (format #t "qid: ~A~%" qid)
 				 (format #t "offset: ~A~%" offset)
@@ -24,18 +28,18 @@
 				 (if (>= offset (string-length (dir-msg qid))) '(0 "")
 				 	(list fid (stat qid)))))
 
-(define (fsattach fc) (list (dir-qid (car (hash-table-ref *9p:qids* 0)))))
+(define (fsattach fc) (list (dir-qid (get-root))))
 
 (define (fswalk fc)
 	(let ((paths (vector->list (fcall-u2 fc)))
-				(root (car (hash-table-ref *9p:qids* 0))))
+				(root (get-entry 0)))
 		(format #t "paths: ~A~%" paths)
 		(if (null? paths) (list (vector))
 			(format #t "failure~%"))))
 
 (define (fsstat fc)
 	(let ((d (hash-table-ref *9p:qids* (fcall-u1 fc))))
-		(if (not d) (list (vector (stat (car (hash-table-ref *9p:qids* 0)))))
+		(if (not d) (list (vector (stat (get-root))))
 			(list (vector (stat d))))))
 
 (define (fsclunk fc)
@@ -62,4 +66,5 @@
 (register fs "clunk" fsclunk)
 (register fs "open" fsopen)
 
+(format #t "ROOT: ~A~%" (get-root))
 (srv fs)
