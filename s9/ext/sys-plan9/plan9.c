@@ -289,7 +289,7 @@ int sys_convD2M(cell x, uchar* buf, int len) {
 	}
 
 	convD2M(d, buf, r);
-	fprint(2, "sys_convD2M: %D\n", d);
+	/* fprint(2, "sys_convD2M: %D\n", d); */
 	return r;
 
 convD2Mout:

@@ -1,6 +1,13 @@
 (require-extension sys-plan9)
 (load-from-library "simple-modules.scm")
 (load-from-library "hash-table.scm")
+(load-from-library "appendb.scm")
+
+(define *9p:paths-table* (make-hash-table))
+(define *9p:path-map* (make-hash-table))
+(define *9p:path-id* 0)
+(define *9p:tree* '())
+(define *9p:root* '())
 
 ;(module 9p
   ;; actions: attach auth clone create flush open read remove stat version write wstat walk
@@ -8,21 +15,56 @@
   (define-structure fcall action tag fid (u1 '()) (u2 '()) (u3 '()))
   (define-structure dir
     (type 0) (dev 0) (qid "") (mode 0) (atime 0) (mtime 0) (length 0)
-    (name "") (uid "nobody") (gid "nobody") (muid "nobody") (contents '())
-    (msg ""))
-    ;; TODO: it's silly to store the converted message here and convert it in sys_convS2M
-    ;; but we do it to be able to understand the offsets
+    (name "") (uid "nobody") (gid "nobody") (muid "nobody") (path 0)
+    (contents '()) (msg ""))
+    ;; TODO: it's silly to store the converted message here and convert it in
+    ;; sys_convS2M, but we do it to be able to understand the offsets
 
-  (define (register-dir table path name mode type contents)
-    (let ((d (make-dir)))
+	(define (next-path-id)
+		(let ((id *9p:path-id*))
+			(set! *9p:path-id* (+ *9p:path-id* 1))
+			id))
+	
+	(define (parse-path tree)
+		(let* ((dir (car tree))
+					 (path (dir-path dir))
+					 (contents (dir-contents dir)))
+			(format #t "ADDING ~A~%" dir)
+			(format #t "CONTENTS (~A): ~A~%" (type-of contents) contents)
+			(hash-table-set! *9p:paths-table* path dir)
+			(cond ((null? contents) #t
+						 (pair? contents) (parse-path contents)
+						 (list? contents)
+							(for-each (lambda (x)
+								(parse-path x) contents))
+						 (default (parse-path contents))))))
+
+	(define (9p:root name mode . contents)
+		(let ((root (9p:entry name mode sys:QTDIR contents)))
+			(set! *9p:root* root)))
+
+	(define (9p:dir name mode . contents)
+		(9p:entry name mode sys:QTDIR contents))
+
+	(define (9p:file name mode . contents)
+		(9p:entry name mode sys:QTFILE contents))
+
+  (define (9p:entry name mode type contents)
+    (let ((d (make-dir))
+    			(path (next-path-id)))
       (dir-set-qid! d (format #f "~X:~X:~X" path mode type))
       (dir-set-name! d name)
+    	(dir-set-path! d path)
       (dir-set-contents! d contents)
       (dir-set-msg! d (sys:convD2M (stat d)))
-      (hash-table-set! table path d)))
+      (hash-table-set! *9p:path-map* path d)
+      d))
 
-  (define (get-dir table path)
-  	(car (hash-table-ref table path)))
+  (define (get-entry path)
+  	(car (hash-table-ref *9p:path-map* path)))
+
+  (define (get-root)
+  		(car (hash-table-ref *9p:path-map* (dir-path *9p:root*))))
 
   (define msize 8192)
   (define version "9P2000")
@@ -83,6 +125,9 @@
 
   (define (instance srvname)
     (let ((f (make-fs srvname (make-hash-table))))
+    	(if (null? *9p:tree*) (error "*9p:tree* must be defined"))
+;;    		(parse-path *9p:tree*))
+    	(format #t "PATHS: ~A~%" *9p:path-map*)
       (register f "version" versionstub)
       f))
 
