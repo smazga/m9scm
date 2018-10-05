@@ -7,21 +7,19 @@
 (define *9p:qids* (make-hash-table))
 
 (define *9p:tree*
-	(9p:root "/" #o0666
+	(9p:root #o0666
 		(9p:dir "foo" #o0666
 			(9p:file "bar" #o0666 "file contents")
 			(9p:file "bar2" #o0666 "file2 contents"))
 		(9p:file "baz" #o0666 "more file contents")))
 
 ;; NOTES:
-;;   * currently getting back bogus info for read()...I think it wants a Dir or something
 ;;   * /sys/src/cmd/aux/searchfs.c is a good reference
 
 (define (fsread fc)
 	(let* ((fid (fcall-fid fc))
 				 (offset (fcall-u1 fc))
-				 (qid (get-entry 0)))
-				 (format #t "type of qid: ~A~%" (type-of qid))
+				 (qid (get-root)))
 				 (format #t "qid: ~A~%" qid)
 				 (format #t "offset: ~A~%" offset)
 				 ;;(format #t "fsread fid: ~A~%" fid)
@@ -67,4 +65,11 @@
 (register fs "open" fsopen)
 
 (format #t "ROOT: ~A~%" (get-root))
+
+(define (dump-tree path rest)
+  (let ((dir (car path))
+        (contents (cdr path)))
+    (format #t "dir: ~A~%" dir)))
+
+(dump-tree *9p:tree* #f)
 (srv fs)

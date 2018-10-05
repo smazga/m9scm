@@ -39,8 +39,8 @@
 								(parse-path x) contents))
 						 (default (parse-path contents))))))
 
-	(define (9p:root name mode . contents)
-		(let ((root (9p:entry name mode sys:QTDIR contents)))
+	(define (9p:root mode . contents)
+		(let ((root (9p:entry "" mode sys:QTDIR contents)))
 			(set! *9p:root* root)))
 
 	(define (9p:dir name mode . contents)
