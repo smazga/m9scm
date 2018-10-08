@@ -5,7 +5,7 @@
  */
 
 #define VERSION "2018-08-01"
-#define MARS "Martian Take 0000"
+#define MARS "Martian Take 0001"
 
 #include "s9core.h"
 #include "s9import.h"
