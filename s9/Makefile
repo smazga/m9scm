@@ -35,6 +35,12 @@ EXTRA_OBJS+=	csv.o
 EXTRA_INIT+=	csv_init();
 EXTRA_LIBS+=
 
+# Uncomment these to include the Curl extensions
+EXTRA_SCM+=	-l ext/curl/curl.scm
+EXTRA_OBJS+=	curl.o
+EXTRA_INIT+=	curl_init();
+EXTRA_LIBS+=	-lcurl
+
 # Options to be added to $(DEFS)
 #	-DBITS_PER_WORD_64	# use 64-bit bignum arithmetics
 #	-DLIBRARY_PATH="\"dir:...\""
@@ -59,7 +65,7 @@ LIBDIR=	$(PREFIX)/lib
 MANDIR=	$(PREFIX)/man/man1
 
 # Set up environment to be used during the build process
-BUILD_ENV=	env S9FES_LIBRARY_PATH=.:lib:ext/sys-unix:ext/curses:ext/csv:contrib
+BUILD_ENV=	env S9FES_LIBRARY_PATH=.:lib:ext/sys-unix:ext/curses:ext/csv:contrib:ext/curl
 
 SETPREFIX=	sed -e "s|^\#! /usr/local|\#! $(PREFIX)|"
 
@@ -77,7 +83,7 @@ s9core.o:	s9core.c s9core.h
 	$(CC) -o s9core.o $(CFLAGS) $(DEFS) -c s9core.c
 
 s9.image:	s9 s9.scm ext/sys-unix/unix.scm ext/curses/curses.scm \
-		ext/csv/csv.scm config.scm
+		ext/csv/csv.scm  ext/curl/curl.scm config.scm
 	$(BUILD_ENV) ./s9 -i - $(EXTRA_SCM) -l config.scm -d s9.image
 
 libs9core.a: s9core.o
@@ -94,6 +100,9 @@ curses.o:	ext/curses/curses.c s9core.h s9import.h s9ext.h
 
 csv.o:	ext/csv/csv.c s9core.h s9import.h s9ext.h
 	$(CC) $(CFLAGS) $(DEFS) -I . -o csv.o -c ext/csv/csv.c
+
+curl.o:	ext/curl/curl.c s9core.h s9import.h s9ext.h
+	$(CC) $(CFLAGS) $(DEFS) -I . -o curl.o -c ext/curl/curl.c
 
 lint:
 	cc -g -Wall -ansi -pedantic -O3 s9.c s9core.c && rm a.out
@@ -142,6 +151,7 @@ install-s9:	s9 s9.scm s9.image s9.1.gz libs9core.a
 	install $C -m 0644 ext/sys-unix/*.scm $(S9DIR)
 	install $C -m 0644 ext/curses/*.scm $(S9DIR)
 	install $C -m 0644 ext/csv/*.scm $(S9DIR)
+	install $C -m 0644 ext/curl/*.scm $(S9DIR)
 	install $C -m 0644 contrib/* $(S9DIR)
 	install $C -m 0644 s9.1.gz $(MANDIR)
 	(tar cf - help | tar xfC - $(S9DIR))

@@ -1,0 +1,5 @@
+(define (http-get url . options)
+  (let ((easy (curl:easy-init)))
+    (curl:setopt easy (sys:magic-const "CURLOPT_URL") url)
+    (curl:perform easy)
+    (curl:cleanup easy)))
