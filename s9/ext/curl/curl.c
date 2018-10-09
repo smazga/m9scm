@@ -16,6 +16,7 @@
 #include "s9ext.h"
 
 #include <curl/curl.h>
+#include "const.h"
 
 static CURL *easylist[1024];
 static int easyidx = 0;
@@ -38,9 +39,8 @@ cell pp_easy_init(cell x) {
 		return error("curl:make-handle", x);
 
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer);
-
-	fprintf(stderr, "easyidx: %d\n", easyidx);
 	easylist[easyidx] = curl;
+
 	return make_integer(easyidx++);
 }
 
@@ -62,21 +62,29 @@ cell pp_cleanup(cell x) {
 cell pp_setopt(cell x) {
 	CURL *handle;
 	CURLoption option;
-	char *parameter;
 	CURLcode code;
 	int idx;
 	char name[] = "sys:setopt";
 
+	code = CURLE_OK;
 	idx = integer_value(name, car(x));
 	handle = easylist[idx];
 
 	if (handle == NULL)
 		return error("no curl handle", x);
 
-	option = integer_value(name, cadr(x));
-	parameter = string(caddr(x));
+	option = find_magic_const(cdr(x));
+	if (_curl_is_long_option(option)) {
+		long parameter;
+		parameter = integer_value(name, caddr(x));
+		code = curl_easy_setopt(handle, option, parameter);
+	}
+	else if (_curl_is_string_option(option)) {
+		char *parameter;
+		parameter = string(caddr(x));
+		code = curl_easy_setopt(handle, option, parameter);
+	}
 
-	code = curl_easy_setopt(handle, option, parameter);
 	if (code != CURLE_OK) {
 		char err[16+CURL_ERROR_SIZE];
 		memset(err, 0, sizeof(err));
@@ -107,33 +115,10 @@ cell pp_perform(cell x) {
 	return UNSPECIFIC;
 }
 
-/* ********************************************************* */
-/* This is the wrong place for this. unix/get_magic_value should be replaced with this */
-#define	K(x)	{#x, (int)x}
-struct Magic_const {
-	char*	name;
-	int	value;
-};
-
-typedef struct Magic_const Magic_const;
-static Magic_const magic_const[] = {
-	K(CURLOPT_URL),
-	{0,0}
-};
-cell pp_sys_magic_const(cell x) {
-	char*		name = string(car(x));
-	Magic_const	*k;
-
-	for (k = magic_const; k->name; k++)
-		if (strcmp(k->name, name) == 0)
-			return make_integer(k->value);
-	return FALSE;
-}
-/* ********************************************************* */
 
 S9_PRIM Curl_primitives[] = {
 	{ "curl:easy-init",	pp_easy_init,		0, 0, { ___,___,___ } },
-	{ "curl:setopt",	pp_setopt,		3, 3, { ___,INT,STR } },
+	{ "curl:setopt",	pp_setopt,		3, 3, { INT,STR,___ } },
 	{ "curl:perform",	pp_perform,		1, 1, { INT,___,___ } },
 	{ "curl:cleanup",	pp_cleanup,		1, 1, { INT,___,___ } },
 	{ "sys:magic-const",	pp_sys_magic_const,	1, 1, { STR,___,___ } },
