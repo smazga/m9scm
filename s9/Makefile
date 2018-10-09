@@ -101,7 +101,7 @@ curses.o:	ext/curses/curses.c s9core.h s9import.h s9ext.h
 csv.o:	ext/csv/csv.c s9core.h s9import.h s9ext.h
 	$(CC) $(CFLAGS) $(DEFS) -I . -o csv.o -c ext/csv/csv.c
 
-curl.o:	ext/curl/curl.c s9core.h s9import.h s9ext.h
+curl.o:	ext/curl/curl.c ext/curl/const.h ext/curl/curl.h s9core.h s9import.h s9ext.h
 	$(CC) $(CFLAGS) $(DEFS) -I . -o curl.o -c ext/curl/curl.c
 
 lint:
