@@ -5,7 +5,7 @@
  */
 
 #define VERSION "2018-08-01"
-#define MARS "Martian Take 0001"
+#define MARS "Martian Edition 0002"
 
 #include "s9core.h"
 #include "s9import.h"
@@ -30,6 +30,7 @@
 		":lib"				\
 		":ext/unix"			\
 		":ext/csv"			\
+		":ext/curl"			\
 		":ext/curses"			\
 		":contrib"			\
 		":~/.s9fes"			\
@@ -3116,6 +3117,22 @@ cell pp_symbols(cell x) {
 	return n;
 }
 
+cell pp_platform(cell x) {
+	USED(x);
+	char *platform;
+
+	platform = "unknown";
+
+#ifdef unix
+	platform = "unix";
+#endif
+#ifdef plan9
+	platform = "plan9";
+#endif
+
+	return make_string(platform, strlen(platform));
+}
+
 #ifdef unix
 
 cell pp_argv(cell x) {
@@ -3269,6 +3286,7 @@ S9_PRIM Core_primitives[] = {
  { "output-port?",        pp_output_port_p,       1,  1, { ___,___,___ } },
  { "pair?",               pp_pair_p,              1,  1, { ___,___,___ } },
  { "peek-char",           pp_peek_char,           0,  1, { INP,___,___ } },
+ { "platform",            pp_platform,            0,  0, { ___,___,___ } },
  { "positive?",           pp_positive_p,          1,  1, { REA,___,___ } },
  { "procedure?",          pp_procedure_p,         1,  1, { ___,___,___ } },
  { "quotient",            pp_quotient,            2,  2, { REA,REA,___ } },
@@ -4057,6 +4075,7 @@ void cleanup(void) {
 void curs_init(void);
 void sys_init(void);
 void csv_init(void);
+void curl_init(void);
 
 void make_initial_env(void) {
 	cell	new;
