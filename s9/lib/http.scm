@@ -5,7 +5,7 @@
 ;; http:user:pass               take a user/pass combo and create a basic auth digest
 ;; http:insecure                turn off ssl safety checks
 
-(cond ((eqv? "plan9" (platform))
+(cond ((string=? "plan9" (platform))
        (load-from-library "webfs.scm"))
-      ((eqv? "unix" (platform))
+      ((string=? "unix" (platform))
        (load-from-library "curl.scm")))
