@@ -121,34 +121,34 @@ cell pp_getinfo(cell x) {
 		struct curl_slist *result = NULL;
 		int count = 0;
 
-		fprintf(stderr, "checking for cookies\n");
 		code = curl_easy_getinfo(handle, info, &result);
 		CHECK(code);
 
-		/* there must be a better way */
 		if (result) {
 			cell new;
 			struct curl_slist *each = result;
 
+			/* there must be a better way */
 			while(each) {
 				count++;
 				each = each->next;
 			}
 
-			fprintf(stderr, "%d COOKIES\n", count);
 			n = make_vector(count);
 			each = result;
 			count = 0;
 
 			save(n); /* why? - based on sys_convM2D */
 			while(each) {
-				new = make_string(each->data, strlen(each->data)); vector(n)[count++] = new;
+				new = make_string(each->data, strlen(each->data));
+				vector(n)[count++] = new;
+				each = each->next;
 			}
 			unsave(1);
+			curl_slist_free_all(result);
+
 			return n;
 		}
-		else
-			fprintf(stderr, "NO COOKIES?\n");
 	}
 
 	return UNSPECIFIC;
