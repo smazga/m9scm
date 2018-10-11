@@ -21,10 +21,10 @@
 (load-from-library "simple-modules.scm")
 
 (module json
-    (define (read-character f)
-      (do ((c (read-char f) (read-char f)))
-	  ((or (eof-object? c)
-	       (not (char-whitespace? c))) c)))
+  (define (read-character f)
+    (do ((c (read-char f) (read-char f)))
+	((or (eof-object? c)
+	     (not (char-whitespace? c))) c)))
 
   (define (peek-character f)
     (do ((c (peek-char f) (peek-char f)))
@@ -111,25 +111,24 @@
 	       (loop (peek-character file) r))))))
 
   (define* (parse file)
-      (let loop ((ch (peek-character file)))
-	(cond ((eqv? #\{ ch) (read-character file) (read-object file))
-	      ((eqv? #\[ ch) (read-character file) (read-array file))
-	      ((eqv? #\t ch) (read-true file))
-	      ((eqv? #\f ch) (read-false file))
-	      ((eqv? #\n ch) (read-null file))
-	      ((or (eqv? #\+ ch)
-		   (eqv? #\- ch)
-		   (char-numeric? ch)) (read-number file))
-	      ((eqv? #\" ch) (read-character file) (read-word file))
-	      (else (error "parse error" ch)))))
+    (let loop ((ch (peek-character file)))
+      (cond ((eqv? #\{ ch) (read-character file) (read-object file))
+	    ((eqv? #\[ ch) (read-character file) (read-array file))
+	    ((eqv? #\t ch) (read-true file))
+	    ((eqv? #\f ch) (read-false file))
+	    ((eqv? #\n ch) (read-null file))
+	    ((or (eqv? #\+ ch)
+		 (eqv? #\- ch)
+		 (char-numeric? ch)) (read-number file))
+	    ((eqv? #\" ch) (read-character file) (read-word file))
+	    (else (error "parse error" ch)))))
 
   (define* (load file)
     (call-with-input-file file
       (lambda (x)
 	(parse x))))
 
-  (define* (dump source)
-    )
+  ;; (define* (dump source))
 ) ;; module
 
 (define-syntax json:load
@@ -145,6 +144,6 @@
       (sys:flush out)
       `(using json (parse) (parse ,in)))))
 
-(define-syntax json->string
-  (lambda (source)
-    `(using json (dump) (dump ,source))))
+;; (define-syntax json->string
+;;   (lambda (source)
+;;     `(using json (dump) (dump ,source))))
