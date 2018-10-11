@@ -10,8 +10,8 @@
     (curl:perform easy)
     (curl:cleanup easy)))
 
-(define (http:enable_cookies)
-  '("CURLOPT_COOKIEFILE" . ""))
+(define (http:enable_cookies file)
+  '("CURLOPT_COOKIEFILE" . file))
 
 (define (http:basic_auth)
   (cons "CURLOPT_HTTPAUTH" (sys:magic-const "CURLAUTH_BASIC")))
