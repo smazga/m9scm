@@ -110,8 +110,7 @@
        (else (let ((r (append array (cons (parse file) '()))))
 	       (loop (peek-character file) r))))))
 
-  (define parse
-    (lambda (file)
+  (define* (parse file)
       (let loop ((ch (peek-character file)))
 	(cond ((eqv? #\{ ch) (read-character file) (read-object file))
 	      ((eqv? #\[ ch) (read-character file) (read-array file))
@@ -122,13 +121,30 @@
 		   (eqv? #\- ch)
 		   (char-numeric? ch)) (read-number file))
 	      ((eqv? #\" ch) (read-character file) (read-word file))
-	      (else (error "parse error" ch))))))
+	      (else (error "parse error" ch)))))
 
   (define* (load file)
     (call-with-input-file file
       (lambda (x)
-	(parse x)))))
+	(parse x))))
+
+  (define* (dump source)
+    )
+) ;; module
 
 (define-syntax json:load
   (lambda (file)
     `(using json (load) (load ,file))))
+
+(define-syntax string->json
+  (lambda (source)
+    (let* ((p   (sys:pipe))
+	   (in  (sys:make-input-port (car p)))
+	   (out (sys:make-output-port (cadr p))))
+      (display source out)
+      (sys:flush out)
+      `(using json (parse) (parse ,in)))))
+
+(define-syntax json->string
+  (lambda (source)
+    `(using json (dump) (dump ,source))))
