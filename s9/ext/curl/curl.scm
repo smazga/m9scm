@@ -1,18 +1,25 @@
 (define (http:get url . options)
   (let ((easy (curl:easy-init)))
     (curl:setopt easy "CURLOPT_URL" url)
-    (apply-options easy options)
+    (apply-options easy (flatten options))
     (let ((response (curl:perform easy)))
       (curl:cleanup easy)
       response)))
 
-(define (apply-options easy options . rest)
-  (cond ((null? options) #t)
-	((list? options) (apply-options easy (car options) (cdr options)))
-	(else
-	 (begin
-	   (curl:setopt easy (car options) (cdr options))
-	   (apply-options easy rest)))))
+(define (http:post url postdata . options)
+  (let ((easy (curl:easy-init)))
+    (curl:setopt easy "CURLOPT_URL" url)
+    (curl:setopt easy "CURLOPT_POSTFIELDS" postdata)
+    (apply-options easy (flatten options))
+    (let ((response (curl:perform easy)))
+      (curl:cleanup easy)
+      response)))
+
+(define (apply-options easy options)
+  (if (null? options) #t
+      (begin
+	(curl:setopt easy (car options) (cadr options))
+	(apply-options easy (cddr options)))))
 
 (define (http:enable_cookies file)
   '("CURLOPT_COOKIEFILE" . file))
@@ -24,6 +31,5 @@
   (cons "CURLOPT_USERPWD" (format #f "~A:~A" user pass)))
 
 (define (http:insecure)
-  (list
-   '("CURLOPT_SSL_VERIFYHOST" . 0)
-   '("CURLOPT_SSL_VERIFYPEER" . 0)))
+  '(("CURLOPT_SSL_VERIFYHOST" . 0)
+    ("CURLOPT_SSL_VERIFYPEER" . 0)))
