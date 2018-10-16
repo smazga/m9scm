@@ -13,36 +13,48 @@
 #include <curl/curl.h>
 #include "curl.h"
 
+#define MAX_SESSIONS	1024
+#define BUFFER_SIZE	8192
+
 /* total hack */
+#define GET_SESSION sessionlist[integer_value(name, car(x))]
 #define GET_HANDLE { \
-	handle = easylist[integer_value(name, car(x))]; \
+	handle = sessionlist[integer_value(name, car(x))]->handle; \
 	if (handle == NULL) \
 		return error("no curl handle", x); }
 
-static CURL *easylist[1024];
-static int easyidx = 0;
+struct Session {
+	CURL *handle;
+	char *buffer;
+	int size;
+};
+
+typedef struct Session Session;
+static Session *sessionlist[MAX_SESSIONS];
+static int sessionidx = 0;
 char error_buffer[CURL_ERROR_SIZE];
 
 cell pp_easy_init(cell x) {
 	CURL *curl;
 
-	if (easyidx >= sizeof(easylist))
-		easyidx = 0;
+	if (sessionidx >= sizeof(sessionlist))
+		sessionidx = 0;
 
-	curl = easylist[easyidx];
+	curl = sessionlist[sessionidx];
 	if (curl != NULL) {
 		curl_easy_cleanup(curl);
-		easylist[easyidx] = NULL;
+		sessionlist[sessionidx] = NULL;
 	}
 
 	curl = curl_easy_init();
 	if (curl == NULL)
 		return error("curl:make-handle", x);
-
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer);
-	easylist[easyidx] = curl;
 
-	return make_integer(easyidx++);
+	sessionlist[sessionidx] = calloc(1, sizeof(Session));
+	sessionlist[sessionidx]->handle = curl;
+
+	return make_integer(sessionidx++);
 }
 
 cell pp_cleanup(cell x) {
@@ -51,11 +63,12 @@ cell pp_cleanup(cell x) {
 	int idx;
 
 	idx = integer_value(name, car(x));
-	handle = easylist[idx];
+	handle = sessionlist[idx]->handle;
 
 	if (handle != NULL) {
 		curl_easy_cleanup(handle);
-		easylist[idx] = NULL;
+		free(sessionlist[idx]->buffer);
+		sessionlist[idx] = NULL;
 	}
 
 	return UNSPECIFIC;
@@ -163,14 +176,35 @@ infofail:
 }
 #undef CHECK
 
+static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *data) {
+	size_t realsize;
+	Session *session;
+
+	realsize = size * nmemb;
+	session = (Session*)data;
+	session->buffer = realloc(session->buffer, session->size + realsize + 1);
+
+	if (session->buffer) {
+		memcpy(&(session->buffer[session->size]), ptr, realsize);
+		session->size += realsize;
+		session->buffer[session->size] = 0;
+	}
+
+	return realsize;
+}
+
 cell pp_perform(cell x) {
-	CURL *handle;
+	Session *session;
 	CURLcode code;
 	char name[] = "sys:perform";
+	cell n;
 
-	GET_HANDLE;
+	session = GET_SESSION;
 
-	code = curl_easy_perform(handle);
+	curl_easy_setopt(session->handle, CURLOPT_WRITEFUNCTION, write_callback);
+	curl_easy_setopt(session->handle, CURLOPT_WRITEDATA, (void *)session);
+
+	code = curl_easy_perform(session->handle);
 	if (code != CURLE_OK) {
 		char err[16+CURL_ERROR_SIZE];
 		memset(err, 0, sizeof(err));
@@ -178,7 +212,9 @@ cell pp_perform(cell x) {
 		return error(err, x);
 	}
 
-	return UNSPECIFIC;
+	n = make_string("", session->size);
+	memcpy(string(n), (char *)session->buffer, session->size);
+	return n;
 }
 
 S9_PRIM Curl_primitives[] = {
@@ -192,7 +228,7 @@ S9_PRIM Curl_primitives[] = {
 
 void curl_init(void) {
 	curl_global_init(CURL_GLOBAL_ALL);
-	memset(easylist, 0, sizeof(easylist));
+	memset(sessionlist, 0, sizeof(sessionlist));
 	memset(error_buffer, 0, sizeof(error_buffer));
 	add_primitives("curl", Curl_primitives);
 }

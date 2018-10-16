@@ -1,14 +1,18 @@
 (define (http:get url . options)
   (let ((easy (curl:easy-init)))
     (curl:setopt easy "CURLOPT_URL" url)
-    (for-each (lambda (i)
-		(if (list? i)
-		 (for-each (lambda (j)
-			     (curl:setopt easy (car j) (cdr j))) i)
-		 (curl:setopt easy (car i) (cdr i))))
-	      options)
-    (curl:perform easy)
-    (curl:cleanup easy)))
+    (apply-options easy options)
+    (let ((response (curl:perform easy)))
+      (curl:cleanup easy)
+      response)))
+
+(define (apply-options easy options . rest)
+  (cond ((null? options) #t)
+	((list? options) (apply-options easy (car options) (cdr options)))
+	(else
+	 (begin
+	   (curl:setopt easy (car options) (cdr options))
+	   (apply-options easy rest)))))
 
 (define (http:enable_cookies file)
   '("CURLOPT_COOKIEFILE" . file))
