@@ -84,14 +84,17 @@ cell pp_setopt(cell x) {
 	GET_HANDLE;
 
 	option = find_magic_const(cdr(x));
+	fprintf(stderr, "option: %d: ", option);
 	if (_curl_is_long_option(option)) {
 		long parameter;
 		parameter = integer_value(name, caddr(x));
+		fprintf(stderr, "  %ld\n", parameter);
 		code = curl_easy_setopt(handle, option, parameter);
 	}
 	else if (_curl_is_string_option(option)) {
 		char *parameter;
 		parameter = string(caddr(x));
+		fprintf(stderr, "  %s\n", parameter);
 		code = curl_easy_setopt(handle, option, parameter);
 	}
 

@@ -1,9 +1,12 @@
 S9 LIB  (json:load string)        ==> list
+        (string->json string)     ==> list
 
         (load-from-library "json.scm")
 
-JSON-LOAD takes a file (specified in STRING) and loads it into a list. JSON
-types are represented with scheme types as follows:
+JSON:LOAD takes a file (specified in STRING) and loads it into a list.
+STRING->JSON takes a string and loads into a JSON-style list.
+
+JSON types are represented with scheme types as follows:
 
  array      --> list
  dictionary --> list of pairs
@@ -16,3 +19,4 @@ types are represented with scheme types as follows:
 Assuming a file "simple.json" containing: {"key":"value"}
 
 (json:load "simple.json")   ==>  (("key" . "value"))
+(string->json "{\"key\": \"value\"}") ==> (("key" . "value"))

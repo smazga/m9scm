@@ -128,22 +128,50 @@
       (lambda (x)
 	(parse x))))
 
-  ;; (define* (dump source))
+  (define (q datum)
+    (cond ((string? datum) (format #f "\"~A\"" datum))
+	  ((number? datum) (format #f "~D" datum))))
+
+  (define (dump-block block)
+    (cond ((null? block) "")
+	  ((string? (car block))
+	   (cond ((null? (cdr block))
+		  (format #t "NULL: ~A:~A~%" (car block) (cdr block))
+		  (format #f "null"))
+		 ((list? (cdr block))
+		  (format #t "LIST: ~A:~A~%" (car block) (cdr block))
+		  (format #f "\"~A\": {~A}" (car block) (dump-block (cdr block))))
+		 (else (format #f "~A: ~A" (q (car block)) (q (cdr block))))))
+	  ((list? block)
+	   (format #t "block: ~A~%" block)
+	   (for-each (lambda inner)
+		     (string-append "" (dump-block inner) ",")
+		     block))
+	  ((pair? block)
+	   (format #f "~A: ~A" (q (car block)) (q (cdr block))))
+	  (else
+	   (format #f "unhandled block type: ~A (~A)~%" (type-of block) block))))
+
+  (define* (dump data)
+    (string-append "{" (dump-block data) "}"))
 ) ;; module
 
 (define-syntax json:load
   (lambda (file)
     `(using json (load) (load ,file))))
 
-(define-syntax string->json
+(define string->json
   (lambda (source)
     (let* ((p   (sys:pipe))
 	   (in  (sys:make-input-port (car p)))
 	   (out (sys:make-output-port (cadr p))))
       (display source out)
       (sys:flush out)
-      `(using json (parse) (parse ,in)))))
+      (using json (parse) (parse in)))))
 
+(define json->string
+  (lambda (source)
+    (using json (dump) (dump source))))
 ;; (define-syntax json->string
 ;;   (lambda (source)
 ;;     `(using json (dump) (dump ,source))))
