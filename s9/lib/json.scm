@@ -10,7 +10,7 @@
 ;; JSON-LOAD takes a file (specified in STRING) and loads it into a list. JSON
 ;; types are represented with scheme types as follows:
 ;;
-;;  array      --> list
+;;  array      --> vector
 ;;  dictionary --> list of pairs
 ;;  string     --> string
 ;;  number     --> number
@@ -101,14 +101,15 @@
 		(peek-character file)))))))
 
   (define (read-array file)
-    (let loop ((ch (peek-character file))
-	       (array '()))
-      (cond
-       ((char-whitespace? ch) (read-character file) (loop (peek-character file) array))
-       ((eqv? ch #\,) (read-character file) (loop (peek-character file) array))
-       ((eqv? ch #\]) (read-character file) array)
-       (else (let ((r (append array (cons (parse file) '()))))
-	       (loop (peek-character file) r))))))
+    (list->vector
+     (let loop ((ch (peek-character file))
+		(array '()))
+       (cond
+	((char-whitespace? ch) (read-character file) (loop (peek-character file) array))
+	((eqv? ch #\,) (read-character file) (loop (peek-character file) array))
+	((eqv? ch #\]) (read-character file) array)
+	(else (let ((r (append array (cons (parse file) '()))))
+		(loop (peek-character file) r)))))))
 
   (define* (parse file)
     (let loop ((ch (peek-character file)))
@@ -130,31 +131,35 @@
 
   (define (q datum)
     (cond ((string? datum) (format #f "\"~A\"" datum))
-	  ((number? datum) (format #f "~D" datum))))
+	  ((number? datum) (format #f "~D" datum))
+	  ((eq? datum #t) "true")
+	  ((eq? datum #f) "false")))
 
-  (define (dump-block block)
+  ;; it must be key: value, at least
+  (define* (dump block)
     (cond ((null? block) "")
 	  ((string? (car block))
 	   (cond ((null? (cdr block))
-		  (format #t "NULL: ~A:~A~%" (car block) (cdr block))
-		  (format #f "null"))
+		  (format #f "~A:null" (q (car block))))
 		 ((list? (cdr block))
-		  (format #t "LIST: ~A:~A~%" (car block) (cdr block))
-		  (format #f "\"~A\": {~A}" (car block) (dump-block (cdr block))))
-		 (else (format #f "~A: ~A" (q (car block)) (q (cdr block))))))
+		  (format #f "~A:~A" (q (car block)) (dump (cdr block))))
+		 ((vector? (cdr block))
+		  (format #f "~A:[~A]" (q (car block))
+			  (let ((entries
+				 (map q (vector->list (cdr block)))))
+			    (string-unsplit #\, entries))))
+		 (else
+		  (format #f "~A:~A" (q (car block)) (q (cdr block))))))
 	  ((list? block)
-	   (format #t "block: ~A~%" block)
-	   (for-each (lambda inner)
-		     (string-append "" (dump-block inner) ",")
-		     block))
-	  ((pair? block)
-	   (format #f "~A: ~A" (q (car block)) (q (cdr block))))
+	   (format #f "{~A}"
+		   (let ((entries
+			  (map dump block)))
+		     (string-unsplit #\, entries))))
 	  (else
-	   (format #f "unhandled block type: ~A (~A)~%" (type-of block) block))))
+	   (error "unknown block type" block))))
 
-  (define* (dump data)
-    (string-append "{" (dump-block data) "}"))
 ) ;; module
+
 
 (define-syntax json:load
   (lambda (file)
@@ -172,6 +177,3 @@
 (define json->string
   (lambda (source)
     (using json (dump) (dump source))))
-;; (define-syntax json->string
-;;   (lambda (source)
-;;     `(using json (dump) (dump ,source))))
