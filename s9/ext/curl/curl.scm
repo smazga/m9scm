@@ -1,19 +1,17 @@
-(define (http:get url . options)
+(define (http:new-session url)
   (let ((easy (curl:easy-init)))
     (curl:setopt easy "CURLOPT_URL" url)
-    (apply-options easy (flatten options))
-    (let ((response (curl:perform easy)))
-      (curl:cleanup easy)
-      response)))
+    easy))
 
-(define (http:post url postdata . options)
-  (let ((easy (curl:easy-init)))
-    (curl:setopt easy "CURLOPT_URL" url)
-    (curl:setopt easy "CURLOPT_POSTFIELDS" postdata)
-    (apply-options easy (flatten options))
-    (let ((response (curl:perform easy)))
-      (curl:cleanup easy)
-      response)))
+(define (http:cleanup easy)
+  (curl:cleanup easy))
+
+(define (http:get easy)
+  (curl:perform easy))
+
+(define (http:post easy postdata)
+  (curl:setopt easy "CURLOPT_POSTFIELDS" postdata)
+  (curl:perform easy))
 
 (define (apply-options easy options)
   (if (null? options) #t
@@ -21,15 +19,15 @@
 	(curl:setopt easy (car options) (cadr options))
 	(apply-options easy (cddr options)))))
 
-(define (http:enable_cookies file)
-  '("CURLOPT_COOKIEFILE" . file))
+(define (http:basic_auth easy)
+  (curl:setopt easy "CURLOPT_HTTPAUTH" (sys:magic-const "CURLAUTH_BASIC")))
 
-(define (http:basic_auth)
-  (cons "CURLOPT_HTTPAUTH" (sys:magic-const "CURLAUTH_BASIC")))
+(define (http:user:pass easy user pass)
+  (curl:setopt easy "CURLOPT_USERPWD" (format #f "~A:~A" user pass)))
 
-(define (http:user:pass user pass)
-  (cons "CURLOPT_USERPWD" (format #f "~A:~A" user pass)))
+(define (http:insecure easy)
+  (curl:setopt easy "CURLOPT_SSL_VERIFYHOST" 0)
+  (curl:setopt easy "CURLOPT_SSL_VERIFYPEER" 0))
 
-(define (http:insecure)
-  '(("CURLOPT_SSL_VERIFYHOST" . 0)
-    ("CURLOPT_SSL_VERIFYPEER" . 0)))
+(define (http:get-cookies easy)
+  (curl:get-cookies easy))
