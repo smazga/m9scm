@@ -112,3 +112,9 @@ cell pp_sys_magic_const(cell x) {
 /* true if info expects a pointer to struct curl_slist * argument */
 #define _curl_is_slist_info(info)                                       \
   (((info) == CURLINFO_SSL_ENGINES) || ((info) == CURLINFO_COOKIELIST))
+
+/* evaluates to true if option takes a POST data argument (void* or char*) */
+#define _curl_is_postfields_option(option)                                    \
+  ((option) == CURLOPT_POSTFIELDS ||                                          \
+   (option) == CURLOPT_COPYPOSTFIELDS ||                                      \
+   0)

@@ -36,6 +36,7 @@ struct Session {
 	char *buffer;
 	size_t bufferlen;
 	struct curl_slist *cookies;
+	struct curl_slist *headers;
 };
 
 typedef struct Session Session;
@@ -108,6 +109,9 @@ cell pp_cleanup(cell x) {
 	if (session->cookies != NULL)
 		curl_slist_free_all(session->cookies);
 
+	if (session->headers != NULL)
+		curl_slist_free_all(session->headers);
+
 	if (session->handle != NULL) {
 		curl_easy_cleanup(session->handle);
 		free(session->buffer);
@@ -123,7 +127,6 @@ cell pp_setopt(cell x) {
 	CURLcode code;
 	char name[] = "sys:setopt";
 
-	code = CURLE_OK;
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
@@ -134,19 +137,14 @@ cell pp_setopt(cell x) {
 		parameter = integer_value(name, caddr(x));
 		fprintf(stderr, "  %ld\n", parameter);
 		code = curl_easy_setopt(session->handle, option, parameter);
+		CHECK_CODE(code);
 	}
-	else if (_curl_is_string_option(option)) {
+	else if (_curl_is_string_option(option) || _curl_is_postfields_option(option)) {
 		char *parameter;
 		parameter = string(caddr(x));
 		fprintf(stderr, "  %s\n", parameter);
 		code = curl_easy_setopt(session->handle, option, parameter);
-	}
-
-	if (code != CURLE_OK) {
-		char err[16+CURL_ERROR_SIZE];
-		memset(err, 0, sizeof(err));
-		snprintf(err, sizeof(err)-1, "%s: %s", name, curl_easy_strerror(code));
-		return error(err, x);
+		CHECK_CODE(code);
 	}
 
 	return UNSPECIFIC;
@@ -224,12 +222,8 @@ cell pp_perform(cell x) {
 	curl_easy_setopt(session->handle, CURLOPT_COOKIEFILE, "");
 
 	code = curl_easy_perform(session->handle);
-	if (code != CURLE_OK) {
-		char err[16+CURL_ERROR_SIZE];
-		memset(err, 0, sizeof(err));
-		snprintf(err, sizeof(err)-1, "%s: %s", name, curl_easy_strerror(code));
-		return error(err, x);
-	}
+	CHECK_CODE(code);
+
 	curl_easy_getinfo(session->handle, CURLINFO_COOKIELIST, &(session->cookies));
 
 	n = make_string("", session->bufferlen);
@@ -250,9 +244,9 @@ cell pp_get_cookies(cell x) {
 cell pp_set_cookies(cell x) {
 	Session *session;
 	CURLcode code;
-	char *name = "curl:set-cookies";
-	int count, i;
 	cell *v;
+	int cookies, i;
+	char *name = "curl:set-cookies";
 
 	session = SESSION;
 	CHECK_SESSION(session, x);
@@ -261,17 +255,56 @@ cell pp_set_cookies(cell x) {
 		return error("argument #2 not a vector", x);
 
 	v = vector(cadr(x));
-	count = vector_len(cadr(x));
+	cookies = vector_len(cadr(x));
 
-	fprintf(stderr, "cookie count: %d\n", count);
-	for (i = 0; i < count; i++) {
+	fprintf(stderr, "cookies: %d\n", cookies);
+
+	for (i = 0; i < cookies; i++) {
 		char *cookie = string(v[i]);
+		fprintf(stderr, "cookie %d: %s\n", i, cookie);
 		code = curl_easy_setopt(session->handle, CURLOPT_COOKIELIST, cookie);
 		CHECK_CODE(code);
 	}
 
 	return NIL;
 }
+
+cell pp_set_headers(cell x) {
+	Session *session;
+	CURLcode code;
+	cell *v;
+	int headers, i;
+	char *name = "curl:set-headers";
+
+	session = SESSION;
+	CHECK_SESSION(session, x);
+
+	if (!vector_p(cadr(x)))
+		return error("argument #2 not a vector", x);
+
+	if (session->headers != NULL) {
+		curl_slist_free_all(session->headers);
+		session->headers = NULL;
+	}
+
+	v = vector(cadr(x));
+	headers = vector_len(cadr(x));
+
+	fprintf(stderr, "headers: %d\n", headers);
+	for (i = 0; i < headers; i++) {
+		char *header = string(v[i]);
+		fprintf(stderr, "header: %s\n", header);
+		session->headers = curl_slist_append(session->headers, header);
+	}
+
+	fprintf(stderr, "session->headers: %p %s\n", (void*)session->headers, session->headers->data);
+
+	code = curl_easy_setopt(session->handle, CURLOPT_HTTPHEADER, session->headers);
+	CHECK_CODE(code);
+
+	return NIL;
+}
+
 
 S9_PRIM Curl_primitives[] = {
 	{ "curl:easy-init",	pp_easy_init,		0, 0, { ___,___,___ } },
@@ -281,6 +314,7 @@ S9_PRIM Curl_primitives[] = {
 	{ "curl:getinfo",	pp_getinfo,		2, 2, { INT,STR,___ } },
 	{ "curl:get-cookies",   pp_get_cookies,         1, 1, { INT,___,___ } },
 	{ "curl:set-cookies",   pp_set_cookies,         2, 2, { INT,VEC,___ } },
+	{ "curl:set-headers",   pp_set_headers,         2, 2, { INT,VEC,___ } },
 	{ "sys:magic-const",	pp_sys_magic_const,	1, 1, { STR,___,___ } },
 };
 
