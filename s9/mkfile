@@ -1,5 +1,5 @@
 # mkfile for Plan 9
-# By Nils M Holm, 2008,2015; Ray Lai, 2014
+# By Nils M Holm, 2008,2015; Ray Lai, 2014; McKay Marston, 2018
 
 </$objtype/mkfile
 
@@ -49,7 +49,7 @@ install:V: $S9FES s9.image
 	chmod 755 /rc/bin/s9
 	cp s9.1 /sys/man/1/s9
 
-uninstall:
+uninstall:V:
 	rm -rf $s9dir
 	rm -f /rc/bin/s9 $S9FES /sys/man/1/s9
 	rm -rf $home/lib/s9fes
