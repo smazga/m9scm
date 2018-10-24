@@ -6,6 +6,7 @@
 ; (s9fes-syntax-objects)        ==>  list
 ; (r4rs-procedures)             ==>  list
 ; (s9fes-procedures)            ==>  list
+; (s9fes-symbols)               ==>  list
 ; (s9fes-extension-procedures)  ==>  list
 ; (s9fes-extension-symbols)     ==>  list
 ;
@@ -15,15 +16,15 @@
 ; Note: only the R4RS symbols defined in S9fES are included here.
 ; Caveat Utilitor.
 ;
-; Example:   (s9fes-syntax-objects)  ==>  ()
+; Example:   (s9fes-syntax-objects)  ==>  (if*)
 
 (define (r4rs-syntax-objects)
   '(=> and begin case cond define define-syntax delay do else if
-    lambda let let* letrec quote quasiquote or set!  syntax-rules
+    lambda let let* letrec quote quasiquote or set! syntax-rules
     unquote unquote-splicing))
 
 (define (s9fes-syntax-objects)
-  '())
+  '(if*))
 
 (define (r4rs-procedures)
   '(* + - / < <= = > >= abs acos append apply asin assoc assq assv
@@ -55,10 +56,15 @@
     with-output-to-file write write-char zero?))
 
 (define (s9fes-procedures)
-  '(delete-file error file-exists? fold-left fold-right gensym
-    load-from-library locate-file macro-expand macro-expand-1 print
-    require-extension reverse! set-input-port! set-output-port! stats
-    symbols vector-append vector-copy void ** *extensions*
+  '(bit-op command-line current-error-port delete-file dump-image
+    environment-variable error eval file-exists? fold-left fold-right
+    gensym load-from-library locate-file macro-expand macro-expand-1
+    open-append-file print quit require-extension reverse!
+    set-input-port! set-output-port! stats symbols system-command
+    vector-append vector-copy void))
+
+(define (s9fes-symbols)
+  '(** *arguments* *epsilon* *extensions* *host-system* *image-file*
     *library-path* *loading*))
 
 (define (s9fes-extension-procedures)

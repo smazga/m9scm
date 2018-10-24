@@ -1,8 +1,6 @@
 S9 LIB  (append! list ...)         ==>  unspecific
         (append! list ... object)  ==>  unspecific
 
-        (load-from-library "appendb.scm")
-
 APPEND! is like APPEND, but appends the LISTs destructively.
 It destroys all but the last object passed to it and returns
 an unspecific value. The append!ed list will be stored in the

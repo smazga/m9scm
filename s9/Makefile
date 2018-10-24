@@ -7,8 +7,8 @@
 PREFIX=/usr/local
 
 # Base version and Release
-BASE=		20170124
-RELEASE=	20180801
+BASE=		20181002
+RELEASE=	20181023
 
 # Override default compiler and flags
 CC=	cc
@@ -42,9 +42,10 @@ EXTRA_INIT+=	curl_init();
 EXTRA_LIBS+=	-lcurl
 
 # Options to be added to $(DEFS)
-#	-DBITS_PER_WORD_64	# use 64-bit bignum arithmetics
+#	-DS9_BITS_PER_WORD_64	# 64-bit build (don't do this!)
 #	-DLIBRARY_PATH="\"dir:...\""
 #				# search path for LOCATE-FILE, etc
+#	-DIMAGE_DIR="\"dir\""	# location of image file
 #	-DNETWORK		# include socket code in the Unix extension
 #	-DCURSES_COLOR		# enable the CURS:SET-COLOR primitive
 #	-DCURSES_RESET		# automatically run CURS:ENDWIN on the REPL
@@ -52,6 +53,7 @@ EXTRA_LIBS+=	-lcurl
 
 DEFS=	$(OSDEF) \
 	-DLIBRARY_PATH="\".:~/s9fes:$(S9DIR)\"" \
+	-DIMAGE_DIR="\"$(S9DIR)\"" \
 	-DEXTENSIONS="$(EXTRA_INIT)" \
 	-DNETWORK \
 	-DCURSES_COLOR \
@@ -65,7 +67,7 @@ LIBDIR=	$(PREFIX)/lib
 MANDIR=	$(PREFIX)/man/man1
 
 # Set up environment to be used during the build process
-BUILD_ENV=	env S9FES_LIBRARY_PATH=.:lib:ext/sys-unix:ext/curses:ext/csv:contrib:ext/curl
+BUILD_ENV=	env S9FES_LIBRARY_PATH=.:lib:ext/sys-unix:ext/curses:ext/csv:contrib:ext/curl S9FES_IMAGE_DIR=.
 
 SETPREFIX=	sed -e "s|^\#! /usr/local|\#! $(PREFIX)|"
 
@@ -108,19 +110,19 @@ lint:
 	cc -g -Wall -ansi -pedantic -O3 s9.c s9core.c && rm a.out
 
 test:	s9 test.image
-	$(BUILD_ENV) ./s9 -i test -f util/test.scm
+	$(BUILD_ENV) ./s9 -i test.image util/test.scm
 
 libtest:	s9 test.image
 	$(BUILD_ENV) sh util/libtest.sh
 
 systest:	s9 test.image s9.image
-	$(BUILD_ENV) ./s9 -i test -f util/systest.scm
+	$(BUILD_ENV) ./s9 -i test.image util/systest.scm
 
 srtest:	s9 test.image
-	$(BUILD_ENV) ./s9 -i test -f util/srtest.scm
+	$(BUILD_ENV) ./s9 -i test.image util/srtest.scm
 
 realtest:	s9 test.image
-	$(BUILD_ENV) ./s9 -i test -f util/realtest.scm
+	$(BUILD_ENV) ./s9 -i test.image util/realtest.scm
 
 test.image:	s9 s9.scm
 	$(BUILD_ENV) ./s9 -i - $(EXTRA_SCM) -d test.image
@@ -191,10 +193,11 @@ install-progs:
 deinstall:	deinstall-s9 deinstall-util deinstall-progs
 
 deinstall-s9:
-	rm -fr $(S9DIR)/help/* && rmdir $(S9DIR)/help
-	rm -fr $(S9DIR)/* && rmdir $(S9DIR)
-	rm -f $(MANDIR)/s9.1.gz
+	rm -f $(S9DIR)/help/* && rmdir $(S9DIR)/help
+	rm -f $(S9DIR)/* && rmdir $(S9DIR)
 	rm -f $(BINDIR)/s9
+	-rmdir $(BINDIR)
+	-rmdir $(MANDIR)
 
 deinstall-util:
 	rm -f $(BINDIR)/s9help		\
@@ -216,7 +219,7 @@ tabs:
 	@find . -name \*.scm -exec grep -l "	" {} \;
 
 cd:
-	./s9 -f util/check-descr.scm
+	./s9 -i s9.image -f util/check-descr.scm
 
 clean:
 	rm -f s9 s9.image libs9core.a test.image s9.1.gz *.o *.core \
@@ -225,7 +228,7 @@ clean:
 		_meta _toc.tr _xref.tr _ndx.tr
 
 new-version:
-	vi Makefile s9.c CHANGES
+	vi Makefile s9.c HISTORY
 	make s9.c
 
 update-library:

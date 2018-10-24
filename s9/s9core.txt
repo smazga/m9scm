@@ -2,11 +2,15 @@
 	================================================================
 	|                           S9CORE                             |
 	|         A Toolkit for Implementing Dynamic Languages         |
-	|                           Mk IIId                            |
+	|                           Mk IV                              |
 	================================================================
 
 	                     Nils M Holm, 2007-2018
 	                      In the public domain
+
+	 If your country does not have a public domain, the CC0 applies:
+	 https://creativecommons.org/share-your-work/public-domain/cc0/
+
 
 	----------------------------------------------------------------
 	RATIONALE
@@ -116,8 +120,14 @@
 	----- cell -----------------------------------------------------
 
 	A "cell" is a reference to an object on the heap. All objects
-	are addressed using cells. A cell is wide enough to hold a
-	pointer on the host platform (typically a ptrdiff_t.
+	are addressed using cells. A cell is wide enough to hold an
+	offset to any object on the heap.
+
+	As of S9core Mk IV, the preferred cell type is "int", even in
+	64-bit environments. Use of 64-bit types can be forced by
+	compiling S9core with the S9_BITS_PER_WORD_64 definition, but
+	doing so is discouraged, because it increases the size of the
+	heap significantly and has little benefits.
 
 	Example: cell x, y;
 
@@ -189,7 +199,7 @@
 
 	===== INITIALIZATION AND SHUTDOWN ==============================
 
-	----- void s9_init(cell **extroots); ---------------------------
+	----- void s9_init(cell **extroots, cell *stk, int *ptr); ------
 
 	The s9_init() function initializes the memory pools, connects
 	the first three I/O ports to stdin, stdout, and stderr, and sets
@@ -203,12 +213,30 @@
 	structures may be protected from GC by including their handles
 	in this array.
 
+	The stk (stack) and ptr (stack pointer) parameters specify a
+	stack and stack pointer that will be managed by the S9 garbage
+	collector. The stack must be an S9 vector and the stack pointer
+	must be a C integer. Objects on the stack between (and including)
+	zero and ptr will be protected from the GC. That is, a ptr value
+	of -1 indicates that the stack is empty.
+
+	The stack vector stk itself must also included in the extroots
+	parameter in order to protect it from GC recycling.
+
+	When a stack is used, it should be set to NIL before calling
+	s9_init(). When no stack is to be used, both stk and ptr should
+	be NULL.
+
 	Example:
 
+	#define STACK_SIZE 1000
 	cell Environment;
-	cell *GC_roots[] = { &Environment, NULL };
+	cell *GC_roots[] = { &Environment, &Stack, NULL };
+	cell Stack = NIL;
+	int  Ptr = -1;
 	...
-	s9_init(GC_roots);
+	s9_init(GC_roots, &Stack, &Ptr);
+	Stack = make_vector(STACK_SIZE);
 
 	----- void s9_fini(void); --------------------------------------
 
@@ -219,6 +247,24 @@
 	The only reason to call it is to prepare for the
 	re-initialization of the toolkit, for example to
 	recover from a failed image load (see load_image()).
+
+	----- void s9_abort(void); -------------------------------------
+	----- void s9_reset(void); -------------------------------------
+
+	The s9_abort() function will set an internal flag in the S9core
+	toolkit that aborts complex operations like bignum arithmetics
+	early and attempts to return to the caller as soon as possible.
+	It should be set when handling an error at the level of the
+	language being implemented on top of S9core.
+
+	s9_reset() resets the abort condition. It should be called when
+	recovering from an error condition and before using any other
+	S9core functions. Otherwise erroneous results will be delivered.
+
+	----- void fatal(char *msg); -----------------------------------
+
+	This function prints the given message and then aborts program
+	execution.
 
 	----- MEMORY ALLOCATION ----------------------------------------
 
@@ -234,14 +280,18 @@
 
 	The size of a cell is the size of a pointer on the host
 	platform. The size of a node is two cells plus a char. So the
-	total node memory limit using the default settings on a 64-bit
-	host would be:
+	total node memory limit using the default settings on a 32-bit
+	or 64-bit host would be:
 
-	14013 times 1024 times (2 times 8+1)  =  243,938,304 bytes
+	14013 times 1024 times (2 times 4+1)  =  129,143,808 bytes
 
 	The default vector pool limit would be:
 
-	14013K cells  =  114,794,496 bytes
+	14013K cells  =  57,397,248 bytes
+
+	The sizes grow significantly when using a 64-bit version of
+	S9core (which is not recommended), as can be seen on the
+	section on set_node_limit(), below.
 
 	At run time, the S9core toolbox will /never/ allocate more
 	memory than the sum of the above (plus the small amount
@@ -314,10 +364,12 @@
 	(using the default segment size) are listed in figure 1.
 
 	As can be seen in the table, the minimal memory footprint of
-	S9core is 416K bytes on 32-bit and 800K bytes on 64-bit systems.
-	In order to obtain a smaller initial memory footprint, the
-	S9_INITIAL_SEGMENT_SIZE constant has to be reduced and the table
-	in figure 1 has to be recalculated.
+	S9core is 416K bytes on 32-bit and 800K bytes on 64-bit system
+	using a 64-bit version of S9core (the default is to use a 32-bit
+	version even on 64-bit systems). In order to obtain a smaller
+	initial memory footprint, the S9_INITIAL_SEGMENT_SIZE constant
+	has to be reduced and the table in figure 1 has to be
+	recalculated.
 
 	    Limit  64-bit memory  32-bit memory
 	---------  -------------  -------------
@@ -375,19 +427,22 @@
 	bignums that are smaller than this limit can be converted to
 	(long) integers just be extracting their first segment.
 
-	These values are /not/ tunable. S9_DIGITS_PER_CELL is 18 on
-	64-bit machines, 9 on 32- bit machines, and (theoretically) 4 on
-	16-bit machines.
+	These values are /not/ tunable. S9_DIGITS_PER_CELL is 9 on both
+	32-bit and 64-bit machines and (theoretically) 4 on 16-bit
+	machines. It can be extended to 18 by compiling a 64-bit
+	version of S9core (using S9_BITS_PER_WORD_64), but doing so
+	is not recommended.
 
 	----- S9_MANTISSA_SEGMENTS -------------------------------------
 	----- S9_MANTISSA_SIZE -----------------------------------------
 
 	S9_MANTISSA_SEGMENTS his is the number of integer segments (see
-	above) in the mantissae of real numbers. The default is one
-	segment (18 digits of precision) on 64-bit hosts and two segments
-	(also 18 digits) on 32-bit platforms. Each additional mantissa
-	segment increases precision by S9_DIGITS_PER_CELL (see above),
-	but also slows down real number computations.
+	above) in the mantissae of real numbers. The default is two
+	segments (18 digits) on both 32-bit and 64-bit platforms. When
+	doing a 64-bit build, the default is one segment (which is also
+	18 digits). Each additional mantissa segment increases precision
+	by S9_DIGITS_PER_CELL (see above), but also slows down real
+	number computations.
 
 	This is a compile-time option and cannot be tweaked at run time.
 
@@ -1330,7 +1385,6 @@
 	----- cell real_floor(cell x); ---------------------------------
 	----- cell real_trunc(cell x); ---------------------------------
 	----- cell real_ceil(cell x); ----------------------------------
-	----- cell real_round(cell x); ---------------------------------
 
 	These functions round the given real number as shown in figure 2.
 
@@ -1345,11 +1399,6 @@
 	--------------------------------
 	real_ceil    +inf    1.5     2.0
 	                    -1.5    -1.0
-	--------------------------------
-	real_round   near    1.5     2.0
-	             w/o    -1.5    -2.0
-	             bias    2.5     2.0
-	                    -2.5    -2.0
 	--------------------------------
 	Fig 2. Rounding
 
@@ -1401,8 +1450,8 @@
 	terminate the S9core process or, in case the memory limit has
 	been removed, result in allocation of huge amounts of memory.
 	For example, converting the number 1e+1000000 would create a
-	string of 1 million zeros (and one one) and allocate about 25M
-	bytes of memory in the process (on a 64-bit system). Also, the
+	string of 1 million zeros (and one one) and allocate about 13M
+	bytes of memory in the process (on a 32-bit system). Also, the
 	process would take a very long time.
 
 	This function is most useful for real numbers with a magnitude
@@ -1678,7 +1727,7 @@
 	----- int gcv(void); -------------------------------------------
 
 	The gc() function starts a node pool garbage collection and
-	returns the number of nodes reclaimed. gcv() starts a vector
+	returns the number of available nodes. gcv() starts a vector
 	pool garbage collection and compaction and returns the number
 	of free cells in the vector pool.
 
@@ -1771,10 +1820,13 @@
 	This function resets the given counter to zero.
 
 	----- void count(counter *c); ----------------------------------
+	----- void countn(counter *c, int n); --------------------------
 
-	This function increments the given counter by one. Counters
-	overflow at one quadrillion (10^15). There is no overflow
-	checking.
+	The count() function increments the given counter by one and
+	countn() increments the counter by /n/.
+
+	Counters overflow at one quadrillion (10^15). There is no
+	overflow checking.
 
 	----- cell read_counter(counter *c); ---------------------------
 
@@ -1833,11 +1885,6 @@
 	The asctol() function is like atol(), but does not interpret a
 	leading 0 as a base-8 prefix, like Plan 9's atol() does.
 
-	----- void fatal(char *msg); -----------------------------------
-
-	This function prints the given message and then aborts program
-	execution.
-
 	----- cell flat_copy(cell n, cell *lastp); ---------------------
 
 	flat_copy() copies the "spine" of the list /n/, i.e. the cons
@@ -1850,8 +1897,20 @@
 	append. /lastp/ will be ignored, if /n/ is NULL.
 
 	----- int length(cell n); --------------------------------------
+	----- int conses(cell n); --------------------------------------
 
-	This function returns the number of elements in the list /n/.
+	Both functions count the cells forming the "spine" of the object
+	/n/, where the spine is a linked list of objects from which all
+	other elements of /n/ are linked to.
+
+	length() counts cells until it encounters a NIL object, so it
+	is used to measure the length of NIL-terminated lists and the
+	internal structures of atoms.
+
+	conses() counts cells until it encounters an atom, so it is used
+	to measure the lengthts of NIL-terminated /or/ improper (dotted)
+	lists. Because it only counts pairs/conses, It cannot be used to
+	measure chains of atoms.
 
 	----------------------------------------------------------------
 	CAVEATS

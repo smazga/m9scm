@@ -1,6 +1,6 @@
 ; Scheme 9 from Empty Space
 ; Unix Extension Test Suite
-; By Nils M Holm, 2010,2012
+; By Nils M Holm, 2010,2012,2018
 
 ; NOTE: SOCKET-TEST will fail if this test is run
 ; multiple times in quick succession.
@@ -370,11 +370,11 @@
       (let loop ()
         (sys:write (cadr pipe) (sys:read (car pipe) 1024))
         (loop))
-      (and (test (sys:write (cadr pipe) "echo"))
-           (test (equal? (sys:read (car pipe) 4) "echo"))
-           (test (sys:notify pid))
-           (sys:usleep 100000)
-           (test (sys:waitpid pid)))))
+      (begin (test (sys:write (cadr pipe) "echo"))
+             (test (equal? (sys:read (car pipe) 4) "echo"))
+             (test (sys:notify pid))
+             (sys:usleep 100000)
+             (test (sys:waitpid pid)))))
 
 (with-output-to-file
   "testprog"
@@ -427,14 +427,14 @@
       (let loop ()
         (sys:write (cadr pipe) (sys:read (car pipe) 1024))
         (loop))
-      (and (test (sys:select '(1 0) '() (list (cadr pipe))))
-           (test (not (sys:select '(0 0) (list (car pipe)) '())))
-           (test (sys:write (cadr pipe) "echo"))
-           (test (sys:select '(1 0) (list (car pipe)) '()))
-           (test (equal? (sys:read (car pipe) 4) "echo"))
-           (test (not (sys:select '(0 0) (list (car pipe)) '())))
-           (test (sys:notify pid))
-           (test (sys:wait)))))
+      (begin (test (sys:select '(1 0) '() (list (cadr pipe))))
+             (test (not (sys:select '(0 0) (list (car pipe)) '())))
+             (test (sys:write (cadr pipe) "echo"))
+             (test (sys:select '(1 0) (list (car pipe)) '()))
+             (test (equal? (sys:read (car pipe) 4) "echo"))
+             (test (not (sys:select '(0 0) (list (car pipe)) '())))
+             (test (sys:notify pid))
+             (test (sys:wait)))))
 
 ; ----- Sockets --------------------------------------------------------------
 

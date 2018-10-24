@@ -1,5 +1,17 @@
 
-	- macro tests
+	- catch / throw
+
+	- catch-errors
+
+	- disassembler
+
+	- clean up the library
+
+	- optimizations:
+		variadic string-append
+		variadic vector-append
 
 	- EDOC: handle white space in block comments properly
+
+	- EDOC: troff mode
 

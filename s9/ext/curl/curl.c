@@ -20,15 +20,18 @@
 #define SESSION sessionlist[integer_value(name, car(x))]
 
 #define CHECK_SESSION(s, c) \
-	if (s->handle == NULL) \
-		return error("no curl handle", c);
+	if (s->handle == NULL) { \
+		error("no curl handle", c); \
+		return UNSPECIFIC; \
+	}
 
 #define CHECK_CODE(c) \
 	if (c != CURLE_OK) { \
 		char err[16+CURL_ERROR_SIZE]; \
 		memset(err, 0, sizeof(err)); \
 		snprintf(err, sizeof(err)-1, "%s: %s", name, curl_easy_strerror(code)); \
-		return error(err, x); \
+		error(err, x); \
+		return UNSPECIFIC; \
 	}
 
 struct Session {
@@ -90,8 +93,10 @@ cell pp_easy_init(cell x) {
 	}
 
 	curl = curl_easy_init();
-	if (curl == NULL)
-		return error("curl:make-handle", x);
+	if (curl == NULL) {
+		error("curl:make-handle", x);
+		return UNSPECIFIC;
+	}
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer);
 
 	sessionlist[sessionidx] = calloc(1, sizeof(Session));
@@ -251,8 +256,10 @@ cell pp_set_cookies(cell x) {
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
-	if (!vector_p(cadr(x)))
-		return error("argument #2 not a vector", x);
+	if (!vector_p(cadr(x))) {
+		error("argument #2 not a vector", x);
+		return UNSPECIFIC;
+	}
 
 	v = vector(cadr(x));
 	cookies = vector_len(cadr(x));
@@ -279,8 +286,10 @@ cell pp_set_headers(cell x) {
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
-	if (!vector_p(cadr(x)))
-		return error("argument #2 not a vector", x);
+	if (!vector_p(cadr(x))) {
+		error("argument #2 not a vector", x);
+		return UNSPECIFIC;
+	}
 
 	if (session->headers != NULL) {
 		curl_slist_free_all(session->headers);
@@ -316,6 +325,7 @@ S9_PRIM Curl_primitives[] = {
 	{ "curl:set-cookies",   pp_set_cookies,         2, 2, { INT,VEC,___ } },
 	{ "curl:set-headers",   pp_set_headers,         2, 2, { INT,VEC,___ } },
 	{ "sys:magic-const",	pp_sys_magic_const,	1, 1, { STR,___,___ } },
+	{ NULL }
 };
 
 void curl_init(void) {
