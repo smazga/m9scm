@@ -13,9 +13,8 @@
 #include "s9import.h"
 #include "s9ext.h"
 
-#include <setjmp.h>
-
 #ifdef unix
+ #include <setjmp.h>
  #include <signal.h>
  #define handle_sigquit()       signal(SIGQUIT, keyboard_quit)
  #define handle_sigint()        signal(SIGINT, keyboard_interrupt)
@@ -186,7 +185,7 @@ cell	P_abs, P_append, P_assq, P_assv, P_bit_op, P_boolean_p,
 	P_vector_append, P_vector_copy, P_vector_fill_b,
 	P_vector_length, P_vector_p, P_vector_ref,
 	P_vector_set_b, P_vector_to_list, P_write, P_write_char,
-	P_zero_p;
+	P_zero_p, P_platform;
 
 /* Special Ops */
 
@@ -259,7 +258,8 @@ enum	{ OP_APPLIS, OP_APPLY, OP_ARG, OP_COPY_ARG, OP_CLOSURE,
 	  OP_UNQUOTE_SPLICING, OP_VECTOR, OP_VECTOR_APPEND,
 	  OP_VECTOR_COPY, OP_VECTOR_FILL_B, OP_VECTOR_LENGTH,
 	  OP_VECTOR_P, OP_VECTOR_REF, OP_VECTOR_SET_B,
-	  OP_VECTOR_TO_LIST, OP_WRITE, OP_WRITE_CHAR, OP_ZERO_P
+	  OP_VECTOR_TO_LIST, OP_WRITE, OP_WRITE_CHAR, OP_ZERO_P,
+	  OP_PLATFORM
 	  };
 
 /*
@@ -778,7 +778,7 @@ cell vector_to_list(cell x) {
  * shallow binding will be used exclusively.
  */
 
-void bind(cell v, cell a) {
+void bindcell(cell v, cell a) {
 	cell	n;
 
 	n = cons(a, NIL);
@@ -1056,6 +1056,7 @@ void init(void) {
 	P_output_port_p = symbol_ref("output-port?");
 	P_pair_p = symbol_ref("pair?");
 	P_peek_char = symbol_ref("peek-char");
+	P_platform = symbol_ref("platform");
 	P_plus = symbol_ref("+");
 	P_positive_p = symbol_ref("positive?");
 	P_procedure_p = symbol_ref("procedure?");
@@ -1110,20 +1111,20 @@ void init(void) {
 	P_write = symbol_ref("write");
 	P_write_char = symbol_ref("write-char");
 	P_zero_p = symbol_ref("zero?");
-	bind(S_arguments, NIL);
-	bind(S_epsilon, Epsilon);
-	bind(S_extensions, NIL);
-	bind(S_image_file, FALSE);
-	bind(S_library_path, make_library_path());
-	bind(S_loading, FALSE);
-	bind(S_starstar, NIL);
+	bindcell(S_arguments, NIL);
+	bindcell(S_epsilon, Epsilon);
+	bindcell(S_extensions, NIL);
+	bindcell(S_image_file, FALSE);
+	bindcell(S_library_path, make_library_path());
+	bindcell(S_loading, FALSE);
+	bindcell(S_starstar, NIL);
 #ifdef unix
-	bind(S_host_system, symbol_ref("unix"));
+	bindcell(S_host_system, symbol_ref("unix"));
 #else
  #ifdef plan9
-	bind(S_host_system, symbol_ref("plan9"));
+	bindcell(S_host_system, symbol_ref("plan9"));
  #else
-	bind(S_host_system, symbol_ref("unknown"));
+	bindcell(S_host_system, symbol_ref("unknown"));
  #endif
 #endif
 	EXTENSIONS
@@ -2413,6 +2414,7 @@ int subr0p(cell x) {
 	if (x == P_gensym) 		return OP_GENSYM;
 	if (x == P_quit)		return OP_QUIT;
 	if (x == P_symbols)		return OP_SYMBOLS;
+	if (x == P_platform)		return OP_PLATFORM;
 	return -1;
 }
 
@@ -4343,6 +4345,16 @@ void run(cell x) {
 		break;
 	case OP_SYMBOLS:
 		Acc = carof(Glob);
+		skip(1);
+		break;
+	case OP_PLATFORM:
+		Acc = make_string("unknown", 7);
+#ifdef plan9
+		Acc = make_string("plan9", 5);
+#endif
+#ifdef unix
+		Acc = make_string("unix", 4);
+#endif
 		skip(1);
 		break;
 	case OP_ABS:
