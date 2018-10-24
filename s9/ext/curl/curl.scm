@@ -8,7 +8,11 @@
 (define (http:cleanup easy)
   (curl:cleanup easy))
 
-(define (http:get easy)
+(define (http:get url)
+  (let ((easy (http:new-session url)))
+    (curl:perform easy)))
+
+(define (http:perform easy)
   (curl:perform easy))
 
 (define (http:post easy postdata)
