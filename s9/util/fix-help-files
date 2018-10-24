@@ -302,9 +302,11 @@ cp split-url url-proto
 cp split-url url-suffix
 {cd sys-unix; cp standard-error-port call-with-stderr; cd ..}
 {cd sys-unix; cp standard-error-port with-output-to-stderr; cd ..}
+cp starstar starargumentsstar
 cp starstar starepsilonstar
 cp starstar starextensionsstar
 cp starstar starlibrary-pathstar
+cp starstar starimage-filestar
 cp starstar starhost-systemstar
 cp starstar starloadingstar
 cp string-find string-ci-find

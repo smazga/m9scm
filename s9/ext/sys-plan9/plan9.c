@@ -722,9 +722,7 @@ cell pp_sys_convS2M(cell x) {
 	/* XXX check size */
 	if (len < 0)
 		return FALSE;
-	n = make_string("", len);
-	memcpy(string(n), (char *)buf, len);
-	return n;
+	return make_string((char*)buf, len);
 }
 
 cell pp_sys_convM2S(cell x) {
