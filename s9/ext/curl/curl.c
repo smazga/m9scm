@@ -136,18 +136,15 @@ cell pp_setopt(cell x) {
 	CHECK_SESSION(session, x);
 
 	option = find_magic_const(cdr(x));
-	fprintf(stderr, "option: %d: ", option);
 	if (_curl_is_long_option(option)) {
 		long parameter;
 		parameter = integer_value(name, caddr(x));
-		fprintf(stderr, "  %ld\n", parameter);
 		code = curl_easy_setopt(session->handle, option, parameter);
 		CHECK_CODE(code);
 	}
 	else if (_curl_is_string_option(option) || _curl_is_postfields_option(option)) {
 		char *parameter;
 		parameter = string(caddr(x));
-		fprintf(stderr, "  %s\n", parameter);
 		code = curl_easy_setopt(session->handle, option, parameter);
 		CHECK_CODE(code);
 	}
@@ -222,6 +219,7 @@ cell pp_perform(cell x) {
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
+	memset(session->buffer, 0, session->bufferlen);
 	curl_easy_setopt(session->handle, CURLOPT_WRITEFUNCTION, write_callback);
 	curl_easy_setopt(session->handle, CURLOPT_WRITEDATA, (void *)session);
 	curl_easy_setopt(session->handle, CURLOPT_COOKIEFILE, "");
@@ -256,19 +254,11 @@ cell pp_set_cookies(cell x) {
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
-	if (!vector_p(cadr(x))) {
-		error("argument #2 not a vector", x);
-		return UNSPECIFIC;
-	}
-
 	v = vector(cadr(x));
 	cookies = vector_len(cadr(x));
 
-	fprintf(stderr, "cookies: %d\n", cookies);
-
 	for (i = 0; i < cookies; i++) {
 		char *cookie = string(v[i]);
-		fprintf(stderr, "cookie %d: %s\n", i, cookie);
 		code = curl_easy_setopt(session->handle, CURLOPT_COOKIELIST, cookie);
 		CHECK_CODE(code);
 	}
@@ -286,11 +276,6 @@ cell pp_set_headers(cell x) {
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
-	if (!vector_p(cadr(x))) {
-		error("argument #2 not a vector", x);
-		return UNSPECIFIC;
-	}
-
 	if (session->headers != NULL) {
 		curl_slist_free_all(session->headers);
 		session->headers = NULL;
@@ -299,14 +284,10 @@ cell pp_set_headers(cell x) {
 	v = vector(cadr(x));
 	headers = vector_len(cadr(x));
 
-	fprintf(stderr, "headers: %d\n", headers);
 	for (i = 0; i < headers; i++) {
 		char *header = string(v[i]);
-		fprintf(stderr, "header: %s\n", header);
 		session->headers = curl_slist_append(session->headers, header);
 	}
-
-	fprintf(stderr, "session->headers: %p %s\n", (void*)session->headers, session->headers->data);
 
 	code = curl_easy_setopt(session->handle, CURLOPT_HTTPHEADER, session->headers);
 	CHECK_CODE(code);
