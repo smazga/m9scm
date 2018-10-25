@@ -5424,6 +5424,11 @@ char *cmdarg(char *s) {
 	return s;
 }
 
+void cleanup(void) {
+	char cmd[] = "(**run-deferred**)";
+	evalstr(cmd, 0);
+}
+
 int main(int argc, char **argv) {
 	int	i, j, k, g, t, loop;
 	char	*s, *dump;
@@ -5514,6 +5519,7 @@ int main(int argc, char **argv) {
 	}
 	gc_verbosity(g);
 	init_extensions();
+	atexit(cleanup);
 	if (libs != NIL) {
 		if (setjmp(Restart) != 0) bye(1);
 		libs = nreverse(libs);
