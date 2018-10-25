@@ -20,8 +20,16 @@
  #define handle_sigint()        signal(SIGINT, keyboard_interrupt)
 #endif
 #ifdef plan9
+static void
+plan9_catch_notify(void *, char *msg)
+{
+	postnote(PNGROUP, getpid(), msg);
+	noted(NDFLT);
+}
+
  #define handle_sigquit()
- #define handle_sigint()        notify(keyboard_interrupt)
+ #define handle_sigint()        notify(plan9_catch_notify)
+ #define system(x)				execl(x, nil)
 #endif
 
 #define IMAGE_FILE	"s9.image"
@@ -185,7 +193,7 @@ cell	P_abs, P_append, P_assq, P_assv, P_bit_op, P_boolean_p,
 	P_vector_append, P_vector_copy, P_vector_fill_b,
 	P_vector_length, P_vector_p, P_vector_ref,
 	P_vector_set_b, P_vector_to_list, P_write, P_write_char,
-	P_zero_p, P_platform;
+	P_zero_p;
 
 /* Special Ops */
 
@@ -258,8 +266,7 @@ enum	{ OP_APPLIS, OP_APPLY, OP_ARG, OP_COPY_ARG, OP_CLOSURE,
 	  OP_UNQUOTE_SPLICING, OP_VECTOR, OP_VECTOR_APPEND,
 	  OP_VECTOR_COPY, OP_VECTOR_FILL_B, OP_VECTOR_LENGTH,
 	  OP_VECTOR_P, OP_VECTOR_REF, OP_VECTOR_SET_B,
-	  OP_VECTOR_TO_LIST, OP_WRITE, OP_WRITE_CHAR, OP_ZERO_P,
-	  OP_PLATFORM
+	  OP_VECTOR_TO_LIST, OP_WRITE, OP_WRITE_CHAR, OP_ZERO_P
 	  };
 
 /*
@@ -1056,7 +1063,6 @@ void init(void) {
 	P_output_port_p = symbol_ref("output-port?");
 	P_pair_p = symbol_ref("pair?");
 	P_peek_char = symbol_ref("peek-char");
-	P_platform = symbol_ref("platform");
 	P_plus = symbol_ref("+");
 	P_positive_p = symbol_ref("positive?");
 	P_procedure_p = symbol_ref("procedure?");
@@ -2072,6 +2078,7 @@ cell free_vars(cell x, cell e) {
 	}
 	n = unsave(1);
 	if (lam) e = unsave(3);
+
 	return n;
 }
 
@@ -2203,6 +2210,7 @@ cell liftnames(cell m) {
 		}
 		m = cdr(m);
 	}
+	#undef name
 	return nreverse(unsave(1));
 }
 
@@ -2414,7 +2422,6 @@ int subr0p(cell x) {
 	if (x == P_gensym) 		return OP_GENSYM;
 	if (x == P_quit)		return OP_QUIT;
 	if (x == P_symbols)		return OP_SYMBOLS;
-	if (x == P_platform)		return OP_PLATFORM;
 	return -1;
 }
 
@@ -4089,6 +4096,7 @@ cell readchar(cell p, int rej) {
 cell read_obj(cell p, int rej) {
 	int	pp;
 	cell	n;
+	USED(rej);
 
 	pp = input_port();
 	if (p != pp) set_input_port(p);
@@ -4345,16 +4353,6 @@ void run(cell x) {
 		break;
 	case OP_SYMBOLS:
 		Acc = carof(Glob);
-		skip(1);
-		break;
-	case OP_PLATFORM:
-		Acc = make_string("unknown", 7);
-#ifdef plan9
-		Acc = make_string("plan9", 5);
-#endif
-#ifdef unix
-		Acc = make_string("unix", 4);
-#endif
 		skip(1);
 		break;
 	case OP_ABS:
@@ -5274,6 +5272,7 @@ cell eval(cell x) {
  */
 
 void keyboard_interrupt(int sig) {
+	USED(sig);
 	if (0 == Running) error("aborted", UNDEFINED);
 	s9_abort();
 	Running = 0;
@@ -5281,6 +5280,7 @@ void keyboard_interrupt(int sig) {
 }
 
 void keyboard_quit(int sig) {
+	USED(sig);
 	fatal("received QUIT signal, exiting");
 }
 
@@ -5553,4 +5553,5 @@ int main(int argc, char **argv) {
 		repl();
 	}
 	bye(0);
+	return 0;
 }
