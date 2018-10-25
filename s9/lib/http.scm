@@ -18,7 +18,8 @@
 ;; (http:set-cookies session cookies) => unspecific
 ;;	set the cookies to the passed vector
 
-(cond ((string=? "plan9" *host-system*)
-       (load-from-library "webfs.scm"))
-      ((string=? "unix" *host-system*)
-       (load-from-library "curl.scm")))
+(let ((platform (symbol->string *host-system*)))
+  (cond ((string=? "plan9" platform)
+	 (load-from-library "webfs.scm"))
+	((string=? "unix" platform)
+	 (load-from-library "curl.scm"))))
