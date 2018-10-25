@@ -717,7 +717,6 @@ cell pp_sys_convM2D(cell x) {
 cell pp_sys_convS2M(cell x) {
 	uchar	buf[8192+IOHDRSZ];
 	int	len = sys_convS2M(car(x), buf, sizeof buf);
-	cell	n;
 
 	/* XXX check size */
 	if (len < 0)
@@ -823,11 +822,11 @@ cell pp_sys_exec(cell x) {
 
 	for (p = cadr(x); p != NIL; p = cdr(p)) {
 		if (!pair_p(p))
-			return error(
+			error(
 				"sys:exec: improper list, last element is",
 				p);
 		if (!string_p(car(p)))
-			return error(
+			error(
 				"sys:exec: expected list of string, got",
 				car(p));
 	}
@@ -920,7 +919,7 @@ cell pp_sys_make_input_port(cell x) {
 	int	in = new_port();
 
 	if (in < 0)
-		return error("sys:make-input-port: out of ports", VOID);
+		error("sys:make-input-port: out of ports", VOID);
 
 	Ports[in] = fdopen(integer_value("sys:make-input-port", car(x)),
 				"r");
@@ -931,7 +930,7 @@ cell pp_sys_make_output_port(cell x) {
 	int	out = new_port();
 
 	if (out < 0)
-		return error("sys:make-output-port: out of ports", VOID);
+		error("sys:make-output-port: out of ports", VOID);
 
 	Ports[out] = fdopen(integer_value("sys:make-output-port", car(x)),
 				"w");
@@ -943,9 +942,9 @@ cell pp_sys_mount(cell x) {
 	cell	y = cdddr(x);
 
 	if (!integer_p(car(y)))
-		return error("sys:mount: expected integer, got", car(y));
+		error("sys:mount: expected integer, got", car(y));
 	if (!string_p(cadr(y)))
-		return error("sys:mount: expected string, got", cadr(y));
+		error("sys:mount: expected string, got", cadr(y));
 	return mount(integer_value(name, car(x)),
 		     integer_value(name, cadr(x)), 
 		     string(caddr(x)), 

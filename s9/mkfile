@@ -12,7 +12,7 @@ CLEANFILES=	s9.image test.image s9fes
 CFLAGS=		$CFLAGS -Dplan9 '-DEXTENSIONS=sys_init();'
 EXTRASCM=	-l ext/sys-plan9/plan9.scm -l ext/sys-plan9/plan9-tools.scm
 
-s9dir=		/lib/s9fes
+s9dir=		$home/lib/s9fes
 
 all:V: $S9FES s9.image
 
