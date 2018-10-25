@@ -2459,6 +2459,30 @@
 (test (apply apply `(,cons (a b))) '(a . b))
 (test (apply apply `(,list a b (c d))) '(a b c d))
 
+;;; Martian Edition
+
+(load-from-library "json.scm")
+(test (string->json "{\"string\": \"test\"}") '(("string" . "test")))
+(test (string->json "{\"number\": 1}") '(("number" . 1)))
+(test (string->json "{\"true\": true}") '(("true" . #t)))
+(test (string->json "{\"false\": false}") '(("false" . #f)))
+(test (string->json "{\"null\": null}") '(("null")))
+(test (string->json "{\"foo\": \"bar\", \"baz\": 2}") '(("foo" . "bar") ("baz" . 2)))
+(test (string->json "{\"foo\": {\"bar\": {\"baz\": 2}}}") '(("foo" ("bar" ("baz" . 2)))))
+
+(test (json->string '(("string" . "test"))) "{\"string\":\"test\"}")
+(test (json->string '(("number" . 1))) "{\"number\":1}")
+(test (json->string '(("true" . #t))) "{\"true\":true}")
+(test (json->string '(("false" . #f))) "{\"false\":false}")
+(test (json->string '(("null"))) "{\"null\":null}")
+(test (json->string '(("foo" . "bar") ("baz" . 2))) "{\"foo\":\"bar\",\"baz\":2}")
+(test (json->string '(("foo" ("bar" ("baz" . 2))))) "{\"foo\":{\"bar\":{\"baz\":2}}}")
+
+(defer (newline))
+(defer (display "3"))
+(defer (display "2"))
+(defer (display "defer: 1"))
+
 ; === Beginning of R4RS tests ===
 
 ; R4RS tests, 6.1 booleans

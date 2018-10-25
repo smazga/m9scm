@@ -1,23 +1,35 @@
-;; Scheme 9 from Empty Space, JSON Library
-;; By McKay Marston, 2018
-;; Placed in the Public Domain
+; Scheme 9 from Empty Space, JSON Library
+; By McKay Marston, 2018
+; Placed in the Public Domain
 
-;; https://www.ietf.org/rfc/rfc4627.txt
-;; inspired by: https://github.com/tqtifnypmb/scm-json
+; https://www.ietf.org/rfc/rfc4627.txt
+; inspired by: https://github.com/tqtifnypmb/scm-json
 
-;; (json:load string)      ==> list
-;;
-;; JSON-LOAD takes a file (specified in STRING) and loads it into a list. JSON
-;; types are represented with scheme types as follows:
-;;
-;;  array      --> vector
-;;  dictionary --> list of pairs
-;;  string     --> string
-;;  number     --> number
-;;  null       --> '()
-;;  true       --> #t
-;;  false      --> #f
+; (json:load string)      ==> list
+; (string->json string)   ==> list
+; (json->string list)     ==> string
+;
+; (load-from-library "json.scm")
+;
+; JSON:LOAD takes a file (specified in STRING) and loads it into a list. JSON
+; types are represented with scheme types as follows:
+;
+; STRING->JSON takes a string and loads into a JSON-style list.
+;
+; JSON->STRING takes a compatible list and returns a JSON-style string.
+;
+;  array      --> vector
+;  dictionary --> list of pairs
+;  string     --> string
+;  number     --> number
+;  null       --> '()
+;  true       --> #t
+;  false      --> #f
+;
+; Example: (string->json "{\"key\": \"value\"}") ==> (("key" . "value"))
+;          (json->string '(("key" . "value"))) ==> "{\"key\":\"value\"}"
 
+(load-from-library "format.scm")
 (load-from-library "simple-modules.scm")
 
 (module json
