@@ -379,6 +379,12 @@
   (iota* 1 1)    ==>  ()
 )
 
+(load-from-library "json.scm")
+(%test
+(string->json "{\"key\": \"value\"}") ==> (("key" . "value"))
+(json->string '(("key" . "value"))) ==> "{\"key\":\"value\"}"
+)
+
 (load-from-library "keyword-value.scm")
 (%test
   (keyword-value '(foo 1 bar 2) 'bar)  ==>  2
