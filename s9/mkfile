@@ -6,13 +6,13 @@
 S9FES_LIBRARY_PATH=
 BIN=		/$objtype/bin
 TARG=		s9fes
-S9FES=	$BIN/$TARG
+S9FES=		$BIN/$TARG
 OFILES=		s9.$O s9core.$O plan9.$O s9-ffi.$O
 CLEANFILES=	s9.image test.image s9fes
 CFLAGS=		$CFLAGS -Dplan9 '-DEXTENSIONS=sys_init();'
 EXTRASCM=	-l ext/sys-plan9/plan9.scm -l ext/sys-plan9/plan9-tools.scm
 
-s9dir=		$home/lib/s9fes
+s9dir=		/lib/s9fes
 
 all:V: $S9FES s9.image
 
@@ -39,7 +39,7 @@ test.image: $BIN/$TARG s9.scm
 install:V: $S9FES s9.image
 	mkdir -p $s9dir
 	mkdir -p $s9dir/^($objtype lib ext contrib help)
-	cp s9.image $s9dir/$objtype/s9fes.image
+	cp s9.image $s9dir/$objtype/s9.image
 	cp s9.scm $s9dir/s9fes.scm
 	cp lib/* $s9dir/lib
 	cp ext/sys-plan9/*.scm $s9dir/ext
