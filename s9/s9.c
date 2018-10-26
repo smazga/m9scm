@@ -6,6 +6,8 @@
  * https://creativecommons.org/share-your-work/public-domain/cc0/
  */
 
+#define RELEASE_DATE	"2018-10-26"
+#define PATCHLEVEL	1
 #define VERSION "2018-10-23"
 #define MARS "Martian Edition 0003"
 
@@ -14,22 +16,14 @@
 #include "s9ext.h"
 
 #ifdef unix
- #include <setjmp.h>
  #include <signal.h>
+ #include <setjmp.h>
  #define handle_sigquit()       signal(SIGQUIT, keyboard_quit)
  #define handle_sigint()        signal(SIGINT, keyboard_interrupt)
 #endif
 #ifdef plan9
-static void
-plan9_catch_notify(void *, char *msg)
-{
-	postnote(PNGROUP, getpid(), msg);
-	noted(NDFLT);
-}
-
  #define handle_sigquit()
- #define handle_sigint()        notify(plan9_catch_notify)
- #define system(x)		-1
+ #define handle_sigint()        notify(keyboard_interrupt)
 #endif
 
 #define IMAGE_FILE	"s9.image"
@@ -99,6 +93,7 @@ cell	Cts = NIL,
 	Rts = NIL;
 
 volatile int Running = 1;
+volatile int Intr = 0;
 
 int	Stats = 0;
 
@@ -114,6 +109,8 @@ int	Ip = 0,
 int	Sz = CHUNK_SIZE;
 
 jmp_buf	Restart;
+jmp_buf	Error_tag;
+cell	Error_handler;
 
 cell	Argv = NIL;
 
@@ -132,7 +129,7 @@ int	O_quiet = 0;
 cell	*Image_vars[] = { &Glob, &Hash, &Macros, NULL };
 
 cell	*GC_roots[] = {
-		&Stack, &Prog, &Env, &Cts, &Emitbuf, &Glob, &Hash,
+		&Prog, &Env, &Cts, &Emitbuf, &Glob, &Hash,
 		&Macros, &Rts, &Acc, &Ep, &E0, &Argv, &Tmp,
 	NULL };
 
@@ -144,22 +141,32 @@ cell	*GC_roots[] = {
 
 cell	I_arg, I_closure, I_ref, I_a, I_e;
 
+/* Special Ops */
+
+cell    S_apply, S_arguments, S_begin, S_define,
+	S_define_syntax, S_epsilon, S_error_tag, S_error_value,
+	S_extensions, S_host_system, S_if, S_ifstar,
+	S_image_file, S_lambda, S_letrec, S_library_path,
+	S_loading, S_quasiquote, S_quote, S_release_date,
+	S_set_b, S_starstar, S_unquote, S_unquote_splicing;
+
 /* Procedures */
 
 cell	P_abs, P_append, P_assq, P_assv, P_bit_op, P_boolean_p,
 	P_caaaar, P_caaadr, P_caaar, P_caadar, P_caaddr,
 	P_caadr, P_caar, P_cadaar, P_cadadr, P_cadar, P_caddar,
 	P_cadddr, P_caddr, P_cadr, P_call_cc,
-	P_call_with_current_continuation, P_car, P_cdaaar,
-	P_cdaadr, P_cdaar, P_cdadar, P_cdaddr, P_cdadr, P_cdar,
-	P_cddaar, P_cddadr, P_cddar, P_cdddar, P_cddddr,
-	P_cdddr, P_cddr, P_cdr, P_ceiling, P_char_alphabetic_p,
-	P_char_ci_equal_p, P_char_ci_grtr_p, P_char_ci_gteq_p,
-	P_char_ci_less_p, P_char_ci_lteq_p, P_char_downcase,
-	P_char_equal_p, P_char_grtr_p, P_char_gteq_p,
-	P_char_less_p, P_char_lower_case_p, P_char_lteq_p,
-	P_char_numeric_p, P_char_p, P_char_to_integer,
-	P_char_upcase, P_char_upper_case_p, P_char_whitespace_p,
+	P_call_with_current_continuation, P_car, P_catch,
+	P_catch_tag_p, P_cdaaar, P_cdaadr, P_cdaar, P_cdadar,
+	P_cdaddr, P_cdadr, P_cdar, P_cddaar, P_cddadr, P_cddar,
+	P_cdddar, P_cddddr, P_cdddr, P_cddr, P_cdr, P_ceiling,
+	P_char_alphabetic_p, P_char_ci_equal_p,
+	P_char_ci_grtr_p, P_char_ci_gteq_p, P_char_ci_less_p,
+	P_char_ci_lteq_p, P_char_downcase, P_char_equal_p,
+	P_char_grtr_p, P_char_gteq_p, P_char_less_p,
+	P_char_lower_case_p, P_char_lteq_p, P_char_numeric_p,
+	P_char_p, P_char_to_integer, P_char_upcase,
+	P_char_upper_case_p, P_char_whitespace_p,
 	P_close_input_port, P_close_output_port, P_command_line,
 	P_cons, P_current_error_port, P_current_input_port,
 	P_current_output_port, P_delete_file, P_display,
@@ -189,19 +196,11 @@ cell	P_abs, P_append, P_assq, P_assv, P_bit_op, P_boolean_p,
 	P_string_p, P_string_ref, P_string_set_b,
 	P_string_to_list, P_string_to_symbol, P_substring,
 	P_symbol_p, P_symbol_p, P_symbol_to_string, P_symbols,
-	P_system_command, P_times, P_truncate, P_vector,
-	P_vector_append, P_vector_copy, P_vector_fill_b,
-	P_vector_length, P_vector_p, P_vector_ref,
-	P_vector_set_b, P_vector_to_list, P_write, P_write_char,
-	P_zero_p;
-
-/* Special Ops */
-
-cell	S_apply, S_arguments, S_begin, S_define,
-	S_define_syntax, S_epsilon, S_extensions, S_host_system,
-	S_if, S_ifstar, S_image_file, S_lambda, S_letrec,
-	S_library_path, S_loading, S_quasiquote, S_quote,
-	S_set_b, S_starstar, S_unquote, S_unquote_splicing;
+	P_system_command, P_throw, P_times, P_truncate,
+	P_vector, P_vector_append, P_vector_copy,
+	P_vector_fill_b, P_vector_length, P_vector_p,
+	P_vector_ref, P_vector_set_b, P_vector_to_list, P_write,
+	P_write_char, P_zero_p;
 
 /*
  * Abstract machine opcodes
@@ -218,36 +217,36 @@ enum	{ OP_APPLIS, OP_APPLY, OP_ARG, OP_COPY_ARG, OP_CLOSURE,
 	  OP_BIT_OP, OP_BOOLEAN_P, OP_CAAAAR, OP_CAAADR,
 	  OP_CAAAR, OP_CAADAR, OP_CAADDR, OP_CAADR, OP_CAAR,
 	  OP_CADAAR, OP_CADADR, OP_CADAR, OP_CADDAR, OP_CADDDR,
-	  OP_CADDR, OP_CADR, OP_CALL_CC, OP_CAR, OP_CDAAAR,
-	  OP_CDAADR, OP_CDAAR, OP_CDADAR, OP_CDADDR, OP_CDADR,
-	  OP_CDAR, OP_CDDAAR, OP_CDDADR, OP_CDDAR, OP_CDDDAR,
-	  OP_CDDDDR, OP_CDDDR, OP_CDDR, OP_CDR, OP_CEILING,
-	  OP_CHAR_ALPHABETIC_P, OP_CHAR_CI_EQUAL_P,
-	  OP_CHAR_CI_GRTR_P, OP_CHAR_CI_GTEQ_P,
-	  OP_CHAR_CI_LESS_P, OP_CHAR_CI_LTEQ_P,
-	  OP_CHAR_DOWNCASE, OP_CHAR_EQUAL_P, OP_CHAR_GRTR_P,
-	  OP_CHAR_GTEQ_P, OP_CHAR_LESS_P, OP_CHAR_LOWER_CASE_P,
-	  OP_CHAR_LTEQ_P, OP_CHAR_NUMERIC_P, OP_CHAR_P,
-	  OP_CHAR_TO_INTEGER, OP_CHAR_UPCASE,
-	  OP_CHAR_UPPER_CASE_P, OP_CHAR_WHITESPACE_P,
-	  OP_CLOSE_INPUT_PORT, OP_CLOSE_OUTPUT_PORT,
-	  OP_COMMAND_LINE, OP_CONS, OP_CURRENT_ERROR_PORT,
-	  OP_CURRENT_INPUT_PORT, OP_CURRENT_OUTPUT_PORT,
-	  OP_DELETE_FILE, OP_DISPLAY, OP_DIVIDE, OP_DUMP_IMAGE,
-	  OP_ENVIRONMENT_VARIABLE, OP_EOF_OBJECT_P, OP_EQUAL,
-	  OP_EQV_P, OP_EQ_P, OP_ERROR, OP_ERROR2, OP_EVAL,
-	  OP_EVEN_P, OP_EXACT_P, OP_EXACT_TO_INEXACT,
-	  OP_EXPONENT, OP_EXPT, OP_FILE_EXISTS_P,
-	  OP_FIX_EXACTNESS, OP_FLOOR, OP_GENSYM, OP_GRTR,
-	  OP_GTEQ, OP_INEXACT_P, OP_INEXACT_TO_EXACT,
-	  OP_INPUT_PORT_P, OP_INTEGER_P, OP_INTEGER_TO_CHAR,
-	  OP_LENGTH, OP_LESS, OP_LIST, OP_LIST_REF,
-	  OP_LIST_TAIL, OP_LIST_TO_STRING, OP_LIST_TO_VECTOR,
-	  OP_LOAD, OP_LTEQ, OP_MACRO_EXPAND, OP_MACRO_EXPAND_1,
-	  OP_MAKE_STRING, OP_MAKE_VECTOR, OP_MANTISSA, OP_MAX,
-	  OP_MEMQ, OP_MEMV, OP_MIN, OP_MINUS, OP_NEGATE,
-	  OP_NEGATIVE_P, OP_NOT, OP_NULL_P, OP_ODD_P,
-	  OP_OPEN_APPEND_FILE, OP_OPEN_INPUT_FILE,
+	  OP_CADDR, OP_CADR, OP_CALL_CC, OP_CAR, OP_CATCH,
+	  OP_CATCH_TAG_P, OP_CDAAAR, OP_CDAADR, OP_CDAAR,
+	  OP_CDADAR, OP_CDADDR, OP_CDADR, OP_CDAR, OP_CDDAAR,
+	  OP_CDDADR, OP_CDDAR, OP_CDDDAR, OP_CDDDDR, OP_CDDDR,
+	  OP_CDDR, OP_CDR, OP_CEILING, OP_CHAR_ALPHABETIC_P,
+	  OP_CHAR_CI_EQUAL_P, OP_CHAR_CI_GRTR_P,
+	  OP_CHAR_CI_GTEQ_P, OP_CHAR_CI_LESS_P,
+	  OP_CHAR_CI_LTEQ_P, OP_CHAR_DOWNCASE, OP_CHAR_EQUAL_P,
+	  OP_CHAR_GRTR_P, OP_CHAR_GTEQ_P, OP_CHAR_LESS_P,
+	  OP_CHAR_LOWER_CASE_P, OP_CHAR_LTEQ_P,
+	  OP_CHAR_NUMERIC_P, OP_CHAR_P, OP_CHAR_TO_INTEGER,
+	  OP_CHAR_UPCASE, OP_CHAR_UPPER_CASE_P,
+	  OP_CHAR_WHITESPACE_P, OP_CLOSE_INPUT_PORT,
+	  OP_CLOSE_OUTPUT_PORT, OP_COMMAND_LINE, OP_CONS,
+	  OP_CURRENT_ERROR_PORT, OP_CURRENT_INPUT_PORT,
+	  OP_CURRENT_OUTPUT_PORT, OP_DELETE_FILE, OP_DISPLAY,
+	  OP_DIVIDE, OP_DUMP_IMAGE, OP_ENVIRONMENT_VARIABLE,
+	  OP_EOF_OBJECT_P, OP_EQUAL, OP_EQV_P, OP_EQ_P,
+	  OP_ERROR, OP_ERROR2, OP_EVAL, OP_EVEN_P, OP_EXACT_P,
+	  OP_EXACT_TO_INEXACT, OP_EXPONENT, OP_EXPT,
+	  OP_FILE_EXISTS_P, OP_FIX_EXACTNESS, OP_FLOOR,
+	  OP_GENSYM, OP_GRTR, OP_GTEQ, OP_INEXACT_P,
+	  OP_INEXACT_TO_EXACT, OP_INPUT_PORT_P, OP_INTEGER_P,
+	  OP_INTEGER_TO_CHAR, OP_LENGTH, OP_LESS, OP_LIST,
+	  OP_LIST_REF, OP_LIST_TAIL, OP_LIST_TO_STRING,
+	  OP_LIST_TO_VECTOR, OP_LOAD, OP_LTEQ, OP_MACRO_EXPAND,
+	  OP_MACRO_EXPAND_1, OP_MAKE_STRING, OP_MAKE_VECTOR,
+	  OP_MANTISSA, OP_MAX, OP_MEMQ, OP_MEMV, OP_MIN,
+	  OP_MINUS, OP_NEGATE, OP_NEGATIVE_P, OP_NOT, OP_NULL_P,
+	  OP_ODD_P, OP_OPEN_APPEND_FILE, OP_OPEN_INPUT_FILE,
 	  OP_OPEN_OUTPUT_FILE, OP_OUTPUT_PORT_P, OP_PAIR_P,
 	  OP_PEEK_CHAR, OP_PLUS, OP_POSITIVE_P, OP_PROCEDURE_P,
 	  OP_QUIT, OP_QUOTE, OP_QUOTIENT, OP_READ, OP_READ_CHAR,
@@ -262,12 +261,12 @@ enum	{ OP_APPLIS, OP_APPLY, OP_ARG, OP_COPY_ARG, OP_CLOSURE,
 	  OP_STRING_SI_LESS_P, OP_STRING_SI_LTEQ_P,
 	  OP_STRING_TO_LIST, OP_STRING_TO_SYMBOL, OP_SUBSTRING,
 	  OP_SYMBOLS, OP_SYMBOL_P, OP_SYMBOL_TO_STRING,
-	  OP_SYSTEM_COMMAND, OP_TIMES, OP_TRUNCATE, OP_UNQUOTE,
-	  OP_UNQUOTE_SPLICING, OP_VECTOR, OP_VECTOR_APPEND,
-	  OP_VECTOR_COPY, OP_VECTOR_FILL_B, OP_VECTOR_LENGTH,
-	  OP_VECTOR_P, OP_VECTOR_REF, OP_VECTOR_SET_B,
-	  OP_VECTOR_TO_LIST, OP_WRITE, OP_WRITE_CHAR, OP_ZERO_P
-	  };
+	  OP_SYSTEM_COMMAND, OP_THROW, OP_TIMES, OP_TRUNCATE,
+	  OP_UNQUOTE, OP_UNQUOTE_SPLICING, OP_VECTOR,
+	  OP_VECTOR_APPEND, OP_VECTOR_COPY, OP_VECTOR_FILL_B,
+	  OP_VECTOR_LENGTH, OP_VECTOR_P, OP_VECTOR_REF,
+	  OP_VECTOR_SET_B, OP_VECTOR_TO_LIST, OP_WRITE,
+	  OP_WRITE_CHAR, OP_ZERO_P };
 
 /*
  * Types
@@ -278,6 +277,7 @@ enum	{ OP_APPLIS, OP_APPLY, OP_ARG, OP_COPY_ARG, OP_CLOSURE,
 #define DOT	(USER_SPECIALS-3)
 
 #define T_FIXNUM	(USER_SPECIALS-100)
+#define T_CATCH_TAG	(USER_SPECIALS-101)
 
 /*
  * Extension setup, add your own ones here
@@ -299,14 +299,18 @@ void curl_init(void);
 void	prints(char *s);
 void	print_form(cell x);
 
-char *ntoa(char *b, cell x, int w);
+char	*ntoa(char *b, cell x, int w);
+
+cell	getbind(cell x);
 
 void rerror(char *s, cell x) {
 	int	i, j, o;
 	char	buf[100];
 
+	Error_handler = getbind(S_error_tag);
+	if (Error_handler != NIL) longjmp(Error_tag, 1);
 	s9_abort();
-	o = set_output_port(2);
+	o = set_output_port(O_quiet? 2: 1);
 	prints("*** error: ");
 	prints(s);
 	if (x != UNDEFINED) {
@@ -324,7 +328,7 @@ void rerror(char *s, cell x) {
 		nl();
 	}
 	prints("*** trace:");
-	i = 0;
+	i = Tp;
 	for (j=0; j<MAX_REF_TRACE; j++) {
 		if (i >= MAX_REF_TRACE) i = 0;
 		if (Trace[i] != NIL) {
@@ -361,9 +365,83 @@ cell mkfix(int v) {
 }
 
 #define fix_p(n) \
-        (!s9_special_p(n) && (tag(n) & S9_ATOM_TAG) && car(n) == T_FIXNUM)
+        (!s9_special_p(n) && (tag(n) & S9_ATOM_TAG) && T_FIXNUM == car(n))
 
 #define fixval(x) cadr(x)
+
+cell closure(cell i, cell e) {
+	cell	c;
+
+	c = cons(Prog, NIL);
+	c = cons(e, c);
+	c = cons(i, c);
+	return new_atom(T_FUNCTION, c);
+}
+
+#define closure_ip(c)	cadr(c)
+#define closure_env(c)	caddr(c)
+#define closure_prog(c)	cadddr(c)
+
+cell catch(void) {
+	cell	n;
+
+	         n = cons(Prog, NIL);
+	Tmp = n; n = cons(Ep, n);
+	Tmp = n; n = cons(mkfix(Fp), n);
+	Tmp = n; n = cons(mkfix(Sp), n);
+	Tmp = n; n = cons(mkfix(Ip+2), n);
+	Tmp = NIL;
+	return new_atom(T_CATCH_TAG, n);
+}
+
+#define catch_tag_p(n) \
+        (!s9_special_p(n) && (tag(n) & S9_ATOM_TAG) && T_CATCH_TAG == car(n))
+
+int throw(cell ct, cell v) {
+	ct = cdr(ct);
+	Ip = fixval(car(ct)); ct = cdr(ct);
+	Sp = fixval(car(ct)); ct = cdr(ct);
+	Fp = fixval(car(ct)); ct = cdr(ct);
+	Ep = car(ct);         ct = cdr(ct);
+	Prog = car(ct);
+	Acc = v;
+	return Ip;
+}
+
+cell subvector(cell v, int k0, int k1);
+
+cell capture_cont(void) {
+	cell	n, *v;
+	int	i;
+
+	n = cons(subvector(Rts, 0, Sz), NIL);
+	v = vector(car(n));
+	for (i = Sp+1; i < Sz; i++) v[i] = UNDEFINED;
+	Tmp = n; n = cons(mkfix(Sz), n);
+	Tmp = n; n = cons(Prog, n);
+	Tmp = n; n = cons(Ep, n);
+	Tmp = n; n = cons(mkfix(Fp), n);
+	Tmp = n; n = cons(mkfix(Sp), n);
+	Tmp = n; n = cons(mkfix(Ip+2), n);
+	Tmp = NIL;
+	return new_atom(T_CONTINUATION, n);
+}
+
+int call_cont(cell c, cell v) {
+	int	nsp;
+
+	c = cdr(c);
+	Ip  = fixval(car(c)); c = cdr(c);
+	nsp = fixval(car(c)); c = cdr(c);
+	Fp  = fixval(car(c)); c = cdr(c);
+	Ep  = car(c);         c = cdr(c);
+	Prog = car(c);        c = cdr(c);
+	Sz  = fixval(car(c)); c = cdr(c);
+	Rts = subvector(car(c), 0, Sz);
+	Sp = nsp;
+	Acc = v;
+	return Ip;
+}
 
 #define list_p(x) (pair_p(x) || NIL == (x))
 
@@ -469,7 +547,7 @@ char *ntoa(char *b, cell x, int w) {
 		neg = 1;
 	}
 	*p = 0;
-	while (x || i == 0) {
+	while (x || 0 == i) {
 		i++;
 		if (i >= sizeof(buf)-1)
 			fatal("ntoa: number too big");
@@ -700,7 +778,7 @@ cell list_to_vector(cell m, char *msg, int flags) {
 		if (atom_p(n)) error(msg, m);
 		k++;
 	}
-	if (k == 0) return make_vector(0);
+	if (0 == k) return make_vector(0);
 	vec = new_vec(T_VECTOR, k*sizeof(cell));
 	Tag[vec] |= flags;
 	p = vector(vec);
@@ -743,7 +821,7 @@ cell string_to_list(cell x) {
 	a = NIL;
 	for (i=0; i<k-1; i++) {
 		s = string(x);
-		if (n == NIL) {
+		if (NIL == n) {
 			n = a = cons(make_char(s[i]), NIL);
 			save(n);
 		}
@@ -765,7 +843,7 @@ cell vector_to_list(cell x) {
 	n = NIL;
 	a = NIL;
 	for (i=0; i<k; i++) {
-		if (n == NIL) {
+		if (NIL == n) {
 			n = a = cons(vector(x)[i], NIL);
 			save(n);
 		}
@@ -785,7 +863,7 @@ cell vector_to_list(cell x) {
  * shallow binding will be used exclusively.
  */
 
-void bindcell(cell v, cell a) {
+void envbind(cell v, cell a) {
 	cell	n;
 
 	n = cons(a, NIL);
@@ -906,8 +984,8 @@ void init(void) {
 	init_rts();
 	image_vars(Image_vars);
 	exponent_chars("eEdDfFlLsS");
-	if (strlen(VERSION) == 10)
-		sprintf(S9magic, "S9:%s", VERSION);
+	if (strlen(RELEASE_DATE) == 10)
+		sprintf(S9magic, "S9:%s:%c", RELEASE_DATE, PATCHLEVEL+'0');
 	else
 		strcpy(S9magic, "S9:BAD-VERSION");
 	clear_trace();
@@ -922,21 +1000,24 @@ void init(void) {
 	S_define = symbol_ref("define");
 	S_define_syntax = symbol_ref("define-syntax");
 	S_epsilon = symbol_ref("*epsilon*");
+	S_error_tag = symbol_ref("*error-tag*");
+	S_error_value = symbol_ref("*error-value*");
 	S_extensions = symbol_ref("*extensions*");
 	S_host_system = symbol_ref("*host-system*");
 	S_if = symbol_ref("if");
 	S_ifstar = symbol_ref("if*");
 	S_image_file = symbol_ref("*image-file*");
-	S_letrec = symbol_ref("letrec");
 	S_lambda = symbol_ref("lambda");
+	S_letrec = symbol_ref("letrec");
 	S_library_path = symbol_ref("*library-path*");
 	S_loading = symbol_ref("*loading*");
-	S_quote = symbol_ref("quote");
 	S_quasiquote = symbol_ref("quasiquote");
-	S_unquote = symbol_ref("unquote");
-	S_unquote_splicing = symbol_ref("unquote-splicing");
+	S_quote = symbol_ref("quote");
+	S_release_date = symbol_ref("*release-date*");
 	S_set_b = symbol_ref("set!");
 	S_starstar = symbol_ref("**");
+	S_unquote = symbol_ref("unquote");
+	S_unquote_splicing = symbol_ref("unquote-splicing");
 	P_abs = symbol_ref("abs");
 	P_append = symbol_ref("append");
 	P_assq = symbol_ref("assq");
@@ -961,6 +1042,8 @@ void init(void) {
 	P_call_with_current_continuation =
 		symbol_ref("call-with-current-continuation");
 	P_car = symbol_ref("car");
+	P_catch = symbol_ref("catch");
+	P_catch_tag_p = symbol_ref("catch-tag?");
 	P_cdaaar = symbol_ref("cdaaar");
 	P_cdaadr = symbol_ref("cdaadr");
 	P_cdaar = symbol_ref("cdaar");
@@ -1103,6 +1186,7 @@ void init(void) {
 	P_symbol_to_string = symbol_ref("symbol->string");
 	P_symbols = symbol_ref("symbols");
 	P_system_command = symbol_ref("system-command");
+	P_throw = symbol_ref("throw");
 	P_times = symbol_ref("*");
 	P_truncate = symbol_ref("truncate");
 	P_vector = symbol_ref("vector");
@@ -1117,20 +1201,24 @@ void init(void) {
 	P_write = symbol_ref("write");
 	P_write_char = symbol_ref("write-char");
 	P_zero_p = symbol_ref("zero?");
-	bindcell(S_arguments, NIL);
-	bindcell(S_epsilon, Epsilon);
-	bindcell(S_extensions, NIL);
-	bindcell(S_image_file, FALSE);
-	bindcell(S_library_path, make_library_path());
-	bindcell(S_loading, FALSE);
-	bindcell(S_starstar, NIL);
+	envbind(S_arguments, NIL);
+	envbind(S_epsilon, Epsilon);
+	envbind(S_error_tag, NIL);
+	envbind(S_error_value, NIL);
+	envbind(S_extensions, NIL);
+	envbind(S_image_file, FALSE);
+	envbind(S_library_path, make_library_path());
+	envbind(S_loading, FALSE);
+	envbind(S_release_date, make_string(RELEASE_DATE,
+					strlen(RELEASE_DATE)));
+	envbind(S_starstar, NIL);
 #ifdef unix
-	bindcell(S_host_system, symbol_ref("unix"));
+	envbind(S_host_system, symbol_ref("unix"));
 #else
  #ifdef plan9
-	bindcell(S_host_system, symbol_ref("plan9"));
+	envbind(S_host_system, symbol_ref("plan9"));
  #else
-	bindcell(S_host_system, symbol_ref("unknown"));
+	envbind(S_host_system, symbol_ref("unknown"));
  #endif
 #endif
 	EXTENSIONS
@@ -1202,13 +1290,17 @@ cell read_list(int flags, int delim) {
 	a = NIL;
 	c = 0;
 	while (1) {
+		if (Intr) {
+			unsave(1);
+			return NIL;
+		}
 		n = read_form(flags);
-		if (n == END_OF_FILE)  {
+		if (END_OF_FILE == n)  {
 			sprintf(msg, "missing ')', started in line %d",
 					Opening_line);
 			error(msg, UNDEFINED);
 		}
-		if (n == DOT) {
+		if (DOT == n) {
 			if (c < 1) {
 				error(badpair, UNDEFINED);
 				continue;
@@ -1223,15 +1315,15 @@ cell read_list(int flags, int delim) {
 			Level--;
 			return m;
 		}
-		if (n == RPAREN || n == RBRACK) {
+		if (RPAREN == n || RBRACK == n) {
 			if (n != delim)
-				error(n == RPAREN?
+				error(RPAREN == n?
 				  "list starting with `[' ended with `)'":
 				  "list starting with `(' ended with `]'",
 				  UNDEFINED);
 			break;
 		}
-		if (a == NIL)
+		if (NIL == a)
 			a = m;
 		else
 			a = cdr(a);
@@ -1258,6 +1350,7 @@ cell read_character(void) {
 	int	i, c = 0; /*LINT*/
 
 	for (i=0; i<sizeof(buf)-1; i++) {
+		if (Intr) return NIL;
 		c = readc();
 		if (i > 0 && !isalpha(c))
 			break;
@@ -1265,9 +1358,9 @@ cell read_character(void) {
 	}
 	rejectc(c);
 	buf[i] = 0;
-	if (i == 0)
+	if (0 == i)
 		c = ' ';
-	else if (i == 1)
+	else if (1 == i)
 		c = buf[0];
 	else if (!strcmp_ci(buf, "space"))
 		c = ' ';
@@ -1292,9 +1385,10 @@ cell read_string(void) {
 	c = readc();
 	inv = 0;
 	while (q || c != '"') {
-		if (c == '\n')
+		if (Intr) return NIL;
+		if ('\n' == c)
 			Line_no++;
-		if (c == EOF)
+		if (EOF == c)
 			error("missing '\"' in string literal", UNDEFINED);
 		if (i >= TOKEN_LENGTH-2) {
 			error("string literal too long", UNDEFINED);
@@ -1304,8 +1398,8 @@ cell read_string(void) {
 			s[i++] = '\\';
 			inv = 1;
 		}
-		s[i] = q && c == 'n'? '\n': c;
-		q = !q && c == '\\';
+		s[i] = q && 'n' == c? '\n': c;
+		q = !q && '\\' == c;
 		if (!q) i++;
 		c = readc();
 	}
@@ -1317,11 +1411,11 @@ cell read_string(void) {
 }
 
 #define separator(c) \
-	((c) == ' '  || (c) == '\t' || (c) == '\n' || \
-	 (c) == '\r' || (c) == '('  || (c) == ')'  || \
-	 (c) == ';'  || (c) == '\'' || (c) == '`'  || \
-	 (c) == ','  || (c) == '"'  || (c) == '['  || \
-	 (c) == ']'  || (c) == EOF)
+	(' '  == (c) || '\t' == (c) || '\n' == (c) || \
+	 '\r' == (c) || '('  == (c) || ')'  == (c) || \
+	 ';'  == (c) || '\'' == (c) || '`'  == (c) || \
+	 ','  == (c) || '"'  == (c) || '['  == (c) || \
+	 ']'  == (c) || EOF  == (c))
 
 #define SYM_CHARS	"!@$%^&*-/_+=~.?<>:"
 
@@ -1383,7 +1477,7 @@ cell meta_command(void) {
 
 	cmd = readc_ci();
 	c = readc();
-	while (c == ' ')
+	while (' ' == c)
 		c = readc();
 	i = 0;
 	while (c != '\n' && c != EOF) {
@@ -1394,7 +1488,7 @@ cell meta_command(void) {
 	rejectc(c);
 	s[i] = 0;
 	n = make_string(s, strlen(s));
-	n = i == 0? NIL: cons(n, NIL);
+	n = 0 == i? NIL: cons(n, NIL);
 	save(n);
 	switch (cmd) {
 	case 'a':	cmdsym = symbol_ref("apropos"); break;
@@ -1448,7 +1542,7 @@ int closing_paren(void) {
 	int c = readc_ci();
 
 	rejectc(c);
-	return c == ')' || c == ']';
+	return ')' == c || ']' == c;
 }
 
 cell bignum_read(char *pre, int radix) {
@@ -1463,11 +1557,11 @@ cell bignum_read(char *pre, int radix) {
 	save(num);
 	c = readc_ci();
 	s = 0;
-	if (c == '-') {
+	if ('-' == c) {
 		s = 1;
 		c = readc_ci();
 	}
-	else if (c == '+') {
+	else if ('+' == c) {
 		c = readc_ci();
 	}
 	nd = 0;
@@ -1512,7 +1606,7 @@ cell read_real_number(int inexact) {
 	else if (real_p(n)) {
 		if (inexact) return n;
 		m = real_to_bignum(n);
-		if (m == UNDEFINED)
+		if (UNDEFINED == m)
 			error("#e: no exact representation for", n);
 		return m;
 	}
@@ -1531,8 +1625,8 @@ cell unreadable(void) {
 	i = 2;
 	while (1) {
 		c = readc_ci();
-		if (c == '>' || c == '\n') {
-			if (c == '\n') Line_no++;
+		if ('>' == c || '\n' == c) {
+			if ('\n' == c) Line_no++;
 			break;
 		}
 		if (i < TOKEN_LENGTH-2)
@@ -1553,16 +1647,17 @@ cell read_form(int flags) {
 
 	c = readc_ci();
 	while (1) {
-		while (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+		while (' ' == c || '\t' == c || '\n' == c || '\r' == c) {
 			if (c == '\n') Line_no++;
+			if (Intr) return NIL;
 			c = readc_ci();
 		}
-		if (c == '#') {
+		if ('#' == c) {
 			c = readc_ci();
-			if (c == '!') {
+			if ('!' == c) {
 				/* skip rest of line */
 			}
-			else if (c == '|') {
+			else if ('|' == c) {
 				c = block_comment();
 				continue;
 			}
@@ -1575,19 +1670,23 @@ cell read_form(int flags) {
 		else if (c != ';') {
 			break;
 		}
-		while (c != '\n' && c != EOF)
+		while (0 == Intr && c != '\n' && c != EOF)
 			c = readc_ci();
+		if (Intr) return NIL;
 	}
-	if (c == EOF) {
+	if (EOF == c) {
 		return END_OF_FILE;
 	}
-	if (c == '(') {
+	if (Intr) {
+		return NIL;
+	}
+	if ('(' == c) {
 		return read_list(flags, RPAREN);
 	}
-	else if (c == '[') {
+	else if ('[' == c) {
 		return read_list(flags, RBRACK);
 	}
-	else if (c == '\'' || c == '`') {
+	else if ('\'' == c || '`' == c) {
 		cell	n;
 
 		if (closing_paren())
@@ -1595,16 +1694,16 @@ cell read_form(int flags) {
 				UNDEFINED);
 		Level++;
 		n = quote(read_form(S9_CONST_TAG),
-			c=='`'? S_quasiquote: S_quote);
+			'`' == c? S_quasiquote: S_quote);
 		Level--;
 		return n;
 	}
-	else if (c == ',') {
+	else if (',' == c) {
 		if (closing_paren())
 			error("missing form after \",\"",
 				UNDEFINED);
 		c = readc_ci();
-		if (c == '@') {
+		if ('@' == c) {
 			return quote(read_form(0), S_unquote_splicing);
 		}
 		else {
@@ -1614,7 +1713,7 @@ cell read_form(int flags) {
 			return quote(read_form(0), S_unquote);
 		}
 	}
-	else if (c == '#') {
+	else if ('#' == c) {
 		c = readc_ci();
 		switch (c) {
 		case 'f':	return FALSE;
@@ -1633,18 +1732,18 @@ cell read_form(int flags) {
 				return UNDEFINED;
 		}
 	}
-	else if (c == '"') {
+	else if ('"' == c) {
 		return read_string();
 	}
-	else if (c == ')') {
+	else if (')' == c) {
 		if (!Level) error("unexpected ')'", UNDEFINED);
 		return RPAREN;
 	}
-	else if (c == ']') {
+	else if (']' == c) {
 		if (!Level) error("unexpected ']'", UNDEFINED);
 		return RBRACK;
 	}
-	else if (c == '.') {
+	else if ('.' == c) {
 		c2 = readc_ci();
 		rejectc(c2);
 		if (separator(c2)) {
@@ -1714,6 +1813,14 @@ int print_procedure(cell n) {
 	return 0;
 }
 
+int print_catch_tag(cell n) {
+	if (catch_tag_p(n)) {
+		prints("#<catch tag>");
+		return 1;
+	}
+	return 0;
+}
+
 int print_continuation(cell n) {
 	if (continuation_p(n)) {
 		prints("#<continuation>");
@@ -1732,9 +1839,9 @@ int print_char(cell n) {
 		prints("#\\");
 	c = cadr(n);
 	b[1] = 0;
-	if (!Displaying && c == ' ')
+	if (!Displaying && ' ' == c)
 		prints("space");
-	else if (!Displaying && c == '\n')
+	else if (!Displaying && '\n' == c)
 		prints("newline");
 	else {
 		b[0] = c;
@@ -1760,11 +1867,11 @@ int print_string(cell n) {
 		if (Displaying) {
 			prints(b);
 		}
-		else if (b[0] == '"' || b[0] == '\\') {
+		else if ('"' == b[0] || '\\' == b[0]) {
 			prints("\\");
 			prints(b);
 		}
-		else if (b[0] == '\n') {
+		else if ('\n' == b[0]) {
 			prints("\\n");
 		}
 		else {
@@ -1834,21 +1941,28 @@ int print_fixnum(cell n) {
 	return 1;
 }
 
+void print_special(cell n) {
+	char	buf[100];
+
+	sprintf(buf, "#<unknown special value %d>", (int) n);
+	prints(buf);
+}
+
 void x_print_form(cell n, int depth) {
 	if (depth > MAX_IO_DEPTH) {
 		error("printer: too many nested lists or vectors", UNDEFINED);
 		return;
 	}
-	if (n == NIL) {
+	if (NIL == n) {
 		prints("()");
 	}
 	else if (eof_p(n)) {
 		prints("#<eof>");
 	}
-	else if (n == FALSE) {
+	else if (FALSE == n) {
 		prints("#f");
 	}
-	else if (n == TRUE) {
+	else if (TRUE == n) {
 		prints("#t");
 	}
 	else if (undefined_p(n)) {
@@ -1857,9 +1971,13 @@ void x_print_form(cell n, int depth) {
 	else if (unspecific_p(n)) {
 		prints("#<unspecific>");
 	}
+	else if (special_p(n)) {
+		print_special(n);
+	}
 	else {
 		if (print_char(n)) return;
 		if (print_procedure(n)) return;
+		if (print_catch_tag(n)) return;
 		if (print_continuation(n)) return;
 		if (print_realnum(n)) return;
 		if (print_integer(n)) return;
@@ -2078,7 +2196,6 @@ cell free_vars(cell x, cell e) {
 	}
 	n = unsave(1);
 	if (lam) e = unsave(3);
-
 	return n;
 }
 
@@ -2195,6 +2312,7 @@ cell liftargs(cell m) {
 		m = cdr(m);
 	}
 	return nreverse(unsave(1));
+	#undef source
 }
 
 cell liftnames(cell m) {
@@ -2210,8 +2328,8 @@ cell liftnames(cell m) {
 		}
 		m = cdr(m);
 	}
-	#undef name
 	return nreverse(unsave(1));
+	#undef name
 }
 
 /*
@@ -2279,7 +2397,7 @@ cell defconv(cell x, cell e, cell a) {
 }
 
 cell cconv(cell x, cell e, cell a) {
-	int	n;
+	int	n, p;
 
 	if (	pair_p(x) &&
 		(S_apply == car(x)  ||
@@ -2295,7 +2413,9 @@ cell cconv(cell x, cell e, cell a) {
 		return cons(I_arg, cons(mkfix(n), NIL));
 	}
 	if ((n = hashq(x, e)) != FALSE) {
-		return cons(I_ref, cons(mkfix(n), cons(x, NIL)));
+		p = cons(x, NIL);
+		n = cons(I_ref, cons(mkfix(n), p));
+		return n;
 	}
 	if (symbol_p(x)) {
 		error("undefined symbol", x);
@@ -2446,6 +2566,8 @@ int subr1p(cell x) {
 	if (x == P_call_with_current_continuation)
 					return OP_CALL_CC;
 	if (x == P_car)			return OP_CAR;
+	if (x == P_catch)		return OP_CATCH;
+	if (x == P_catch_tag_p)		return OP_CATCH_TAG_P;
 	if (x == P_cdaaar)		return OP_CDAAAR;
 	if (x == P_cdaadr)		return OP_CDAADR;
 	if (x == P_cdaar)		return OP_CDAAR;
@@ -2547,6 +2669,7 @@ int subr2p(cell x) {
 	if (x == P_set_cdr_b)		return OP_SET_CDR_B;
 	if (x == P_string_fill_b)	return OP_STRING_FILL_B;
 	if (x == P_string_ref)		return OP_STRING_REF;
+	if (x == P_throw)		return OP_THROW;
 	if (x == P_vector_fill_b)	return OP_VECTOR_FILL_B;
 	if (x == P_vector_ref)		return OP_VECTOR_REF;
 	return -1;
@@ -2781,7 +2904,8 @@ void compsubr1(cell x, int op) {
 	ckargs(x, symbol_name(car(x)), 1, 1);
 	compexpr(cadr(x), 0);
 	emitop(op);
-	if (OP_CALL_CC == op) emitop(OP_APPLY);
+	if (OP_CALL_CC == op || OP_CATCH == op)
+		emitop(OP_APPLY);
 }
 
 void compsubr2(cell x, int op) {
@@ -3237,52 +3361,6 @@ void push(cell x) {
 
 /* Opcodes */
 
-cell closure(cell i, cell e) {
-	cell	c;
-
-	c = cons(Prog, NIL);
-	c = cons(e, c);
-	c = cons(i, c);
-	return new_atom(T_FUNCTION, c);
-}
-
-#define closure_ip(c)	cadr(c)
-#define closure_env(c)	caddr(c)
-#define closure_prog(c)	cadddr(c)
-
-cell catch(void) {
-	cell	n, *v;
-	int	i;
-
-	n = cons(subvector(Rts, 0, Sz), NIL);
-	v = vector(car(n));
-	for (i = Sp+1; i < Sz; i++) v[i] = UNDEFINED;
-	Tmp = n; n = cons(mkfix(Sz), n);
-	Tmp = n; n = cons(Prog, n);
-	Tmp = n; n = cons(Ep, n);
-	Tmp = n; n = cons(mkfix(Fp), n);
-	Tmp = n; n = cons(mkfix(Sp), n);
-	Tmp = n; n = cons(mkfix(Ip+2), n);
-	Tmp = NIL;
-	return new_atom(T_CONTINUATION, n);
-}
-
-int throw(cell c, cell v) {
-	int	nsp;
-
-	c = cdr(c);
-	Ip  = fixval(car(c)); c = cdr(c);
-	nsp = fixval(car(c)); c = cdr(c);
-	Fp  = fixval(car(c)); c = cdr(c);
-	Ep  = car(c);         c = cdr(c);
-	Prog = car(c);        c = cdr(c);
-	Sz  = fixval(car(c)); c = cdr(c);
-	Rts = subvector(car(c), 0, Sz);
-	Sp = nsp;
-	Acc = v;
-	return Ip;
-}
-
 cell apply_extproc(cell pfn) {
 	cell	a, x;
 	int	i, k;
@@ -3307,13 +3385,14 @@ int apply(int tail) {
 	cell	k, e;
 
 	if (!function_p(Acc)) {
-		if (continuation_p(Acc)) {
-			return throw(Acc, arg(1));
-		}
 		if (primitive_p(Acc)) {
 			Acc = apply_extproc(Acc);
 			return Ip+1;
 		}
+		if (continuation_p(Acc)) {
+			return call_cont(Acc, arg(1));
+		}
+printf("%d ", Ip); print_form(Prog); nl();
 		error("application of non-function", Acc);
 	}
 	if (tail) {
@@ -3507,7 +3586,7 @@ cell cxr(char *op, cell x) {
 				rev_cxr_name(op));
 			error(buf, x);
 		}
-		n = *p == 'a'? car(n): cdr(n);
+		n = 'a' == *p? car(n): cdr(n);
 	}
 	return n;
 }
@@ -3711,7 +3790,7 @@ cell exact_to_inexact(cell x) {
 		flags = bignum_negative_p(x)? REAL_NEGATIVE: 0;
 		n = bignum_abs(x);
 		n = Make_real(flags, 0, cdr(n));
-		if (n == UNDEFINED) error("exact->inexact: overflow", x);
+		if (UNDEFINED == n) error("exact->inexact: overflow", x);
 		return n;
 	}
 	return x;
@@ -4218,6 +4297,10 @@ void reset_tty(void);
 
 void run(cell x) {
 	Prog = x;
+	if (setjmp(Error_tag) != 0) {
+		Ip = throw(Error_handler, getbind(S_error_value));
+		if (Ip < 0) longjmp(Restart, 1);
+	}
 	for (Running = 1; Running;) switch (ins()) {
 	case OP_APPLIS:
 		Ip = applis(0);
@@ -4374,6 +4457,15 @@ void run(cell x) {
 		Acc = car(Acc);
 		skip(1);
 		break;
+	case OP_CATCH:
+		push(box(catch()));
+		push(mkfix(1));
+		skip(1);
+		break;
+	case OP_CATCH_TAG_P:
+		Acc = catch_tag_p(Acc)? TRUE: FALSE;
+		skip(1);
+		break;
 	case OP_CDR:
 		if (!pair_p(Acc)) expect("cdr", "pair", Acc);
 		Acc = cdr(Acc);
@@ -4500,7 +4592,7 @@ void run(cell x) {
 		skip(1);
 		break;
 	case OP_CALL_CC:
-		push(box(catch()));
+		push(box(capture_cont()));
 		push(mkfix(1));
 		skip(1);
 		break;
@@ -4613,7 +4705,7 @@ void run(cell x) {
 		skip(1);
 		break;
 	case OP_FIX_EXACTNESS:
-		if (vector(Rts)[Sp--] == TRUE)
+		if (TRUE == vector(Rts)[Sp--])
 			Acc = exact_to_inexact(Acc);
 		skip(1);
 		break;
@@ -4996,6 +5088,9 @@ void run(cell x) {
 		clear(1);
 		skip(1);
 		break;
+	case OP_THROW:
+		Ip = throw(Acc, arg(0));
+		break;
 	case OP_MAX:
 		if (real_p(Acc) || real_p(arg(0))) stackset(Sp-1, TRUE);
 		Acc = real_less_p(arg(0), Acc)? Acc: arg(0);
@@ -5271,21 +5366,36 @@ cell eval(cell x) {
  * REPL
  */
 
-void keyboard_interrupt(int sig) {
-	USED(sig);
-	if (0 == Running) error("aborted", UNDEFINED);
+#ifdef unix
+ void keyboard_interrupt(int sig) {
+	reset_std_ports();
 	s9_abort();
 	Running = 0;
 	Expand_level = -1;
-}
+	Intr = 1;
+ }
 
 void keyboard_quit(int sig) {
 	USED(sig);
 	fatal("received QUIT signal, exiting");
-}
+ }
+#endif /* unix */
+
+#ifdef plan9
+ void keyboard_interrupt(void *dummy, char *note) {
+	if (strstr(note, "interrupt") == NULL)
+		noted(NDFLT);
+	reset_std_ports();
+	s9_abort();
+	Running = 0;
+	Expand_level = -1;
+	Intr = 1;
+	noted(NCONT);
+ }
+#endif /* plan9 */
 
 void mem_error(int src) {
-	if (src == 1)
+	if (1 == src)
 		error("node limit reached", UNDEFINED);
 	else    
 		error("vector limit reached", UNDEFINED);
@@ -5302,7 +5412,7 @@ void repl(void) {
 	cell	x;
 
 	setjmp(Restart);
-	handle_sigint();
+	if (!O_quiet) handle_sigint();
 	handle_sigquit();
 	mem_error_handler(mem_error);
 	for (;;) {
@@ -5318,8 +5428,9 @@ void repl(void) {
 			prints("> ");
 			flush();
 		}
+		Intr = 0;
 		x = xread();
-		if (END_OF_FILE == x) break;
+		if (END_OF_FILE == x && 0 == Intr) break;
 		x = eval(x);
 		if (x != UNSPECIFIC) {
 			setbind(S_starstar, x);
@@ -5360,7 +5471,11 @@ void longusage(void) {
 
 	nl();
 	prints("Scheme 9 from Empty Space by Nils M Holm, ");
-	prints(VERSION);
+	prints(RELEASE_DATE);
+	if (PATCHLEVEL) {
+		prints(" pl");
+		writec(PATCHLEVEL+'0');
+	}
 	nl();
 	prints(MARS);
 	prints("This program is in the public domain");
@@ -5407,7 +5522,7 @@ long get_size_k(char *s) {
 
 	c = s[strlen(s)-1];
 	n = asctol(s);
-	if (c == 'M' || c == 'm')
+	if ('M' == c || 'm' == c)
 		return n * 1024L;
 	else if (!isdigit(c)) {
 		usage();
@@ -5473,7 +5588,7 @@ int main(int argc, char **argv) {
 			case 'r':
 			case 'e':
 				loop = 0;
-				t = argv[i][j] == 'e';
+				t = 'e' == argv[i][j];
 				i++;
 				s = cmdarg(argv[i]);
 				n = cons(t? TRUE: FALSE,
@@ -5534,7 +5649,7 @@ int main(int argc, char **argv) {
 		exprs = nreverse(exprs);
 		car(Stack) = exprs;
 		while (exprs != NIL) {
-			evalstr(string(cdar(exprs)), caar(exprs) == TRUE);
+			evalstr(string(cdar(exprs)), TRUE == caar(exprs));
 			exprs = cdr(exprs);
 		}
 	}

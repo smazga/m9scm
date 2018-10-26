@@ -6,7 +6,7 @@
 ; (time  form)        ==>  object
 ;
 ; The TIME* procedures evaluates EXPRESSION, measuring the number
-; of allocations and garbage collectins  with the STATS procedure.
+; of allocations and garbage collections with the STATS procedure.
 ; It also measures the time spent reducing FORM. When finished, it
 ; prints some interesting data and returns the normal form of FORM.
 ; The FORM must be quoted or it will be reduced *before* running

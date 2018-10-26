@@ -65,6 +65,9 @@
 #ifdef length
 #undef length
 #endif
+#ifdef bind
+#undef bind
+#endif
 
 /*
  *	Allow us at least to write
@@ -1251,6 +1254,9 @@ cell pp_sys_magic_const(cell x) {
 	return FALSE;
 }
 
+int system(const char* cmd) {
+	return 1;
+}
 
 S9_PRIM Plan9_primitives[] = {
  {"sys:alarm",      pp_sys_alarm,      1, 1, { INT,___,___ } },

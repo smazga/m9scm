@@ -126,17 +126,6 @@
   (bitwise-shift-right 10 1)       ==>  5
 )
 
-(load-from-library "catch.scm")
-(%test
-  (let ((v #f))
-    (let ((r (catch 'foo
-               (set! v 0)
-               (throw 'foo 1)
-               (set! v 2)
-               3)))
-      (list v r)))             ==>  (0 1)
-)
-
 (load-from-library "cdf.scm")
 (%test
   (cdf 0)  ==>  0.5

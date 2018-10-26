@@ -575,11 +575,25 @@
 (test (boolean? 1.1) #f)
 (test (boolean? '(pair)) #f)
 (test (boolean? (lambda () #f)) #f)
+(test (boolean? (catch (lambda (ct) ct))) #f)
 (test (boolean? "string") #f)
 (test (boolean? 'symbol) #f)
 (test (boolean? '#(vector)) #f)
 (test (boolean? (current-input-port)) #f)
 (test (boolean? (current-output-port)) #f)
+
+(test (catch-tag? #f) #f)
+(test (catch-tag? #\c) #f)
+(test (catch-tag? 1) #f)
+(test (catch-tag? 1.1) #f)
+(test (catch-tag? '(pair)) #f)
+(test (catch-tag? (lambda () #f)) #f)
+(test (catch-tag? (catch (lambda (ct) ct))) #t)
+(test (catch-tag? "string") #f)
+(test (catch-tag? 'symbol) #f)
+(test (catch-tag? '#(vector)) #f)
+(test (catch-tag? (current-input-port)) #f)
+(test (catch-tag? (current-output-port)) #f)
 
 (test (char? #f) #f)
 (test (char? #\c) #t)
@@ -587,6 +601,7 @@
 (test (char? 1.1) #f)
 (test (char? '(pair)) #f)
 (test (char? (lambda () #f)) #f)
+(test (char? (catch (lambda (ct) ct))) #f)
 (test (char? "string") #f)
 (test (char? 'symbol) #f)
 (test (char? '#(vector)) #f)
@@ -599,6 +614,7 @@
 (test (input-port? 1.1) #f)
 (test (input-port? '(pair)) #f)
 (test (input-port? (lambda () #f)) #f)
+(test (input-port? (catch (lambda (ct) ct))) #f)
 (test (input-port? "string") #f)
 (test (input-port? 'symbol) #f)
 (test (input-port? '#(vector)) #f)
@@ -611,6 +627,7 @@
 (test (integer? 1.1) #f)
 (test (integer? '(pair)) #f)
 (test (integer? (lambda () #f)) #f)
+(test (integer? (catch (lambda (ct) ct))) #f)
 (test (integer? "string") #f)
 (test (integer? 'symbol) #f)
 (test (integer? '#(vector)) #f)
@@ -623,6 +640,7 @@
 (test (number? 1.1) #t)
 (test (number? '(pair)) #f)
 (test (number? (lambda () #f)) #f)
+(test (number? (catch (lambda (ct) ct))) #f)
 (test (number? "string") #f)
 (test (number? 'symbol) #f)
 (test (number? '#(vector)) #f)
@@ -635,6 +653,7 @@
 (test (output-port? 1.1) #f)
 (test (output-port? '(pair)) #f)
 (test (output-port? (lambda () #f)) #f)
+(test (output-port? (catch (lambda (ct) ct))) #f)
 (test (output-port? "string") #f)
 (test (output-port? 'symbol) #f)
 (test (output-port? '#(vector)) #f)
@@ -646,6 +665,7 @@
 (test (pair? 1.1) #f)
 (test (pair? '(pair)) #t)
 (test (pair? (lambda () #f)) #f)
+(test (pair? (catch (lambda (ct) ct))) #f)
 (test (pair? "string") #f)
 (test (pair? 'symbol) #f)
 (test (pair? '#(vector)) #f)
@@ -658,6 +678,7 @@
 (test (procedure? 1.1) #f)
 (test (procedure? '(procedure)) #f)
 (test (procedure? (lambda () #f)) #t)
+(test (procedure? (catch (lambda (ct) ct))) #f)
 (test (procedure? "string") #f)
 (test (procedure? 'symbol) #f)
 (test (procedure? '#(vector)) #f)
@@ -670,6 +691,7 @@
 (test (real? 1.1) #t)
 (test (real? '(pair)) #f)
 (test (real? (lambda () #f)) #f)
+(test (real? (catch (lambda (ct) ct))) #f)
 (test (real? "string") #f)
 (test (real? 'symbol) #f)
 (test (real? '#(vector)) #f)
@@ -682,6 +704,7 @@
 (test (string? 1.1) #f)
 (test (string? '(pair)) #f)
 (test (string? (lambda () #f)) #f)
+(test (string? (catch (lambda (ct) ct))) #f)
 (test (string? "string") #t)
 (test (string? 'symbol) #f)
 (test (string? '#(vector)) #f)
@@ -694,6 +717,7 @@
 (test (symbol? 1.1) #f)
 (test (symbol? '(pair)) #f)
 (test (symbol? (lambda () #f)) #f)
+(test (symbol? (catch (lambda (ct) ct))) #f)
 (test (symbol? "string") #f)
 (test (symbol? 'symbol) #t)
 (test (symbol? '#(vector)) #f)
@@ -706,6 +730,7 @@
 (test (vector? 1.1) #f)
 (test (vector? '(pair)) #f)
 (test (vector? (lambda () #f)) #f)
+(test (vector? (catch (lambda (ct) ct))) #f)
 (test (vector? "string") #f)
 (test (vector? 'symbol) #f)
 (test (vector? '#(vector)) #t)
@@ -781,17 +806,17 @@
     (if (not (< y x))
         (k z)
         (call-with-current-continuation
-         (lambda (k)
-           (ctak-aux
-            k
-            (call-with-current-continuation
-             (lambda (k) (ctak-aux k (- x 1) y z)))
-            (call-with-current-continuation
-             (lambda (k) (ctak-aux k (- y 1) z x)))
-            (call-with-current-continuation
-             (lambda (k) (ctak-aux k (- z 1) x y))))))))
+          (lambda (k)
+            (ctak-aux
+              k
+              (call-with-current-continuation
+                (lambda (k) (ctak-aux k (- x 1) y z)))
+              (call-with-current-continuation
+                (lambda (k) (ctak-aux k (- y 1) z x)))
+              (call-with-current-continuation
+                (lambda (k) (ctak-aux k (- z 1) x y))))))))
   (call-with-current-continuation
-   (lambda (k) (ctak-aux k x y z))))
+    (lambda (k) (ctak-aux k x y z))))
 
 (test (ctak 6 4 2) 3)
 
@@ -2186,6 +2211,52 @@
 (test (vector-append '#(foo) #(bar)) '#(foo bar))
 (test (vector-append '#(foo) #(bar) #(baz)) '#(foo bar baz))
 
+; catch and throw
+
+(test (catch (lambda (k) 'foo)) 'foo)
+
+(test (cons 'foo (catch (lambda (k) (throw k 'bar)))) '(foo . bar))
+
+(test (cons 'foo (catch (lambda (k) (cons 'zzz (throw k 'bar)))))
+      '(foo . bar))
+
+(define (ctak x y z)
+  (define (ctak-aux k x y z)
+    (if (not (< y x))
+        (throw k z)
+        (catch
+          (lambda (k)
+            (ctak-aux
+              k
+              (catch (lambda (k) (ctak-aux k (- x 1) y z)))
+              (catch (lambda (k) (ctak-aux k (- y 1) z x)))
+              (catch (lambda (k) (ctak-aux k (- z 1) x y))))))))
+  (catch (lambda (k) (ctak-aux k x y z))))
+
+(test (ctak 6 4 2) 3)
+
+(define list-length
+  (lambda (obj)
+    (catch
+      (lambda (improper)
+        (letrec ((r (lambda (obj)
+                      (cond ((null? obj)
+                              0)
+                            ((pair? obj)
+                              (+ (r (cdr obj)) 1))
+                            (else
+                              (throw improper #f))))))
+          (r obj))))))
+
+(test (list-length '(1 2 3 4)) 4)
+(test (list-length '(a b . c)) #f)
+
+(test (catch-errors 'failed (cons 1 2)) '(1 . 2))
+(test (catch-errors 'failed (car 'x)) 'failed)
+(test (catch-errors 'failed (quotient 1 0)) 'failed)
+
+(test (catch-errors 'foo (catch-errors (car 'x) 'bar) 'baz) 'foo)
+
 ;;; Macros
 
 (define-macro (kwote x) (list 'quote x))
@@ -2262,6 +2333,8 @@
 (test (procedure? (apply call-with-current-continuation (list (lambda (x) x))))
       #t)
 (test (procedure? (apply call/cc (list (lambda (x) x)))) #t)
+(test (catch-tag? (apply catch (list (lambda (x) x)))) #t)
+(test (apply catch-tag? (list (catch (lambda (x) x)))) #t)
 (test (apply cdaaar (list tree)) 2)
 (test (apply cdaadr (list tree)) 10)
 (test (apply cdadar (list tree)) 6)
@@ -2370,6 +2443,7 @@
               x)
       "xxx")
 (test (apply string-ref '("abc" 1)) #\b)
+(test (catch (lambda (x) (apply throw (list x 'foo)))) 'foo)
 (test (let () (define x (vector 1 2 3))
               (apply vector-fill! `(,x zzz))
               x)

@@ -88,11 +88,7 @@
 
 	Plan 9
 
-	Note that the Plan 9 build may no longer work properly since
-	the upgrade to S9fES Reimagined. Please submit patches or
-	report success!
-
-	Before installing, run "rc util/fix-help-files". The help/
+	Before installing, run "rc util/fix-links.rc". The help/
 	directory contains symlinks, and the above script replaces
 	them by copies.
 
@@ -221,10 +217,12 @@
 	patches, bug reports, suggestions, hardware, access to hardware,
 	etc:
 
-	Alexander Shendi, Arun Srinivasan, Bakul Shah, Barak Pearlmutter,
-	Blake McBride, Bsamograd (reddit), David Person, Dig1 (reddit),
-	Dirk Lutzebaeck, Doug Currie, Mario Deilmann, Masaru KIMURA,
-	Nullbuilt0 (reddit), Ray Lai, Torsten Leibold, Yi Dai,
+	Alexander Shendi, Arun Srinivasan, Bakul Shah,
+	Barak Pearlmutter, Blake McBride, Bsamograd (reddit),
+	David Person, Dig1 (reddit), Dirk Lutzebaeck,
+	Doug Currie, Mario Deilmann, Masaru KIMURA,
+	McKay Marston, Nullbuilt0 (reddit), Peter, Ray Lai,
+	Torsten Leibold, Victor M. Muriel, Yi Dai,
 	and the Super Dimension Fortress (SDF.ORG).
 
 

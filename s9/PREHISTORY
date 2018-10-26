@@ -2045,7 +2045,7 @@ See the HISTORY file for more recent changes.
 2007-03-29
        Implemented CONS, CAR, CDR, EQ?.
        Simplified the garbage collector.
-       Removed tedious and buggy variable capture code from lambda.
+       Removed tedious and buggy variable capture code from LAMBDA.
 2007-03-28
        Chased a GC leak, found it, splat! --> *
        Implemented primitive procedure framework.
@@ -2054,7 +2054,7 @@ See the HISTORY file for more recent changes.
        Implemented DEFINE (dynamically scoped!).
        Fixed a few bugs in variable capture (could not test this
        earlier).
-       Implemented let by rewriting it as an application of LAMBDA.
+       Implemented LET by rewriting it as an application of LAMBDA.
 2007-03-26
        Modified the evaluator to get rid of the L-stack.
        Modified the evaluator to get rid of the B-stack.
