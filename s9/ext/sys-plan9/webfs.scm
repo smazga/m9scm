@@ -56,6 +56,18 @@
 
 ; todo: It's likely too inefficient to create new connections every time.
 
+;; ======= http code =======
+
+(define (http:new-session url)
+	(create-webfs url))
+
+(define (http:set-url session url)
+	(webfs:ctl-write session (string-append "url " url)))
+
+(define (http:set-headers session headers) '())
+
+(define (http:set-cookies session cookies) '())
+
 (define (http:get url . options)
 	(let ((w (create-webfs url)))
 		(webfs:ctl-write w *useragent*)
@@ -66,11 +78,11 @@
 		(webfs:ctl-write w *useragent*)
 		(webfs:post w url body creds)))
 
-(define (http:insecure) '())
+(define (http:insecure session) '())
 (define (http:enable_cookies) '())
 
 ; not working
-(define (http:user:pass user pass)
+(define (http:user:pass session user pass)
 	(list (string-append "user " user)))
 
-(define (http:basic_auth) '())
+(define (http:basic_auth session) '())
