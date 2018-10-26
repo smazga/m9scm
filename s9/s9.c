@@ -8,8 +8,7 @@
 
 #define RELEASE_DATE	"2018-10-26"
 #define PATCHLEVEL	1
-#define VERSION "2018-10-23"
-#define MARS "Martian Edition 0003"
+#define MARS "Martian Edition 0004"
 
 #include "s9core.h"
 #include "s9import.h"
@@ -24,6 +23,7 @@
 #ifdef plan9
  #define handle_sigquit()
  #define handle_sigint()        notify(keyboard_interrupt)
+ int system(const char*);
 #endif
 
 #define IMAGE_FILE	"s9.image"
