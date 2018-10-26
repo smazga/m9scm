@@ -8,7 +8,7 @@ PREFIX=/usr/local
 
 # Base version and Release
 BASE=		20181002
-RELEASE=	20181023
+RELEASE=	20181025
 
 # Override default compiler and flags
 CC=	cc
@@ -160,7 +160,6 @@ install-s9:	s9 s9.scm s9.image s9.1.gz libs9core.a
 	install $C -m 0644 libs9core.a $(LIBDIR)
 	install $C -m 0644 s9core.h $(INCDIR)
 	install $C -m 0644 s9import.h $(INCDIR)
-	install $C -m 0755 util/make-help-links $(S9DIR)
 
 install-util:
 	$(SETPREFIX) <prog/s9help.scm >$(BINDIR)/s9help
@@ -240,7 +239,7 @@ update-library:
 	cd help && s9 -f ../util/procedures.scm >INDEX
 	@echo
 	@echo "Now copy the new help pages from help-new to help"
-	@echo "and run util/make-help-links."
+	@echo "and run util/fix-links.sh"
 
 s9.1.txt:	s9.1
 	$(CC) -o rpp util/rpp.c

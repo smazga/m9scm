@@ -2,8 +2,10 @@
 ; Unix Extension Test Suite
 ; By Nils M Holm, 2010,2012,2018
 
-; NOTE: SOCKET-TEST will fail if this test is run
-; multiple times in quick succession.
+;;; Some of these test may fail, especially those
+;;; related to processes and sockets! This is most
+;;; probably the result of sloppy test design. To
+;;; be improved.
 
 (load-from-library "mergesort.scm")
 (load-from-library "displaystar.scm")
@@ -381,7 +383,7 @@
   (lambda ()
     (for-each (lambda (x)
                 (display* x #\newline))
-              '("#! ./s9 -f"
+              '("#! ./s9"
                 "(write (sys:command-line))"
                 "(newline)"))))
 
@@ -392,7 +394,8 @@
                 (sys:dup2 (cadr pipe) 1)
                 (sys:chdir "..")
                 (sys:execv (string-append *SANDBOX* "/testprog")
-                           '("foo" "bar" "baz")))
+                           '("foo" "bar" "baz"))
+                (sys:exit 1))
               (else
                 (equal? '("foo" "bar" "baz")
                         (read (sys:make-input-port (car pipe))))))))
@@ -408,10 +411,10 @@
                 (equal? (string-append "hello" (string #\newline))
                         (sys:read (car pipe) 1024))))))
 
-(test (let ((pipe (sys:pipe))) ; SYSTEM of core S9, not of SYS:
+(test (let ((pipe (sys:pipe))) ; SYSTEM-COMMAND of core S9, not of SYS:
         (cond ((zero? (sys:fork))
                 (sys:dup2 (cadr pipe) 1)
-                (system "echo hello")
+                (system-command "echo hello")
                 (sys:exit))
               (else
                 (equal? (string-append "hello" (string #\newline))

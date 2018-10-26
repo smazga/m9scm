@@ -17,13 +17,20 @@
 ; In this case the catch will exit immediately, returning the value
 ; of <expression> as its result.
 ;
-; Example:   (let ((v #f))
+; CATCH/THROW is built into Scheme 9 Reimagined and this implementation
+; clashes with it, because S9 now inlines CATCH and THROW.
+;
+; DON'T USE THIS!
+;
+; (Example:) (let ((v #f))
 ;              (let ((r (catch 'foo
 ;                         (set! v 0)
 ;                         (throw 'foo 1)
 ;                         (set! v 2)
 ;                         3)))
 ;                (list v r)))             ==>  (0 1)
+
+(error "CATCH/THROW is now built into the language. Don't use catch.scm!")
 
 (load-from-library "setters.scm")
 

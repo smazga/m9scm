@@ -2,7 +2,7 @@
 
 This is the source for [s9fes](http://www.t3x.org/s9fes) with patches to make it build on [9front](http://www.9front.org) plus some extras.
 
-*last upstream sync* 20181023
+*last upstream sync* 20181025
 
 ### New Stuff ###
 * now calling it 'Martian Edition' so people understand it's a tainted version of the real s9fes

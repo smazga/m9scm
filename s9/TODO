@@ -1,11 +1,9 @@
 
-	- catch / throw
-
-	- catch-errors
-
 	- disassembler
 
 	- clean up the library
+
+	- review systest
 
 	- optimizations:
 		variadic string-append

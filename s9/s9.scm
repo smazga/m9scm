@@ -1089,6 +1089,24 @@
                     v)))
           #f))))
 
+;; Error handling
+
+(define-syntax (catch-errors v x . xs)
+  (let ((g  (gensym))
+        (r  (gensym))
+        (et (gensym))
+        (ev (gensym)))
+    `(let ((,et *error-tag*)
+           (,ev *error-value*))
+       (let ((,r (catch
+                   (lambda (,g)
+                     (set! *error-value* ,v)
+                     (set! *error-tag* ,g)
+                     ,x . ,xs))))
+         (set! *error-tag* ,et)
+         (set! *error-value* ,ev)
+         ,r))))
+
 ;; Utilities
 
 (define (print . xs)
@@ -1183,6 +1201,8 @@
 (define (call-with-current-continuation p)
         (call-with-current-continuation p))
 (define call/cc call-with-current-continuation)
+(define (catch x) (catch x))
+(define (catch-tag? x) (catch-tag? x))
 (define (cdaaar x) (cdaaar x))
 (define (cdaadr x) (cdaadr x))
 (define (cdaar x) (cdaar x))
@@ -1275,6 +1295,7 @@
 (define (set-cdr! x y) (set-cdr! x y))
 (define (string-fill! x y) (string-fill! x y))
 (define (string-ref x y) (string-ref x y))
+(define (throw x y) (throw x y))
 (define (vector-fill! x y) (vector-fill! x y))
 (define (vector-ref x y) (vector-ref x y))
 
