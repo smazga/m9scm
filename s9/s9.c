@@ -29,7 +29,7 @@ plan9_catch_notify(void *, char *msg)
 
  #define handle_sigquit()
  #define handle_sigint()        notify(plan9_catch_notify)
- #define system(x)				execl(x, nil)
+ #define system(x)		-1
 #endif
 
 #define IMAGE_FILE	"s9.image"
