@@ -1,15 +1,14 @@
 (require-extension sys-plan9)
 
 (define *useragent* "useragent 's9fes webfs/0.1 (compatible; nope)'")
-(define-structure webfs (path "") (ctl "") (stop '()))
+(define-structure webfs (path "") (ctl "") (payload '()) (stop '()))
 
 (define (create-webfs url)
 	(let* ((id (car (read-file (open-input-file "/mnt/web/clone"))))
 				 (path (string-append "/mnt/web/" id "/"))
 				 (ctl (string-append path "ctl")))
 		(make-webfs
-			path
-			ctl
+			path ctl '()
 			(sys:open ctl sys:OREAD) ; simply to keep the connection active
 )))
 
@@ -72,6 +71,11 @@
 	(let ((w (create-webfs url)))
 		(webfs:ctl-write w *useragent*)
 		(webfs:get w url)))
+
+(define (http:perform session)
+	(if (null? (webfs-payload session))
+		(webfs:body session)
+		(webfs:post session)))
 
 (define (http:post url body . creds)
 	(let ((w (create-webfs url)))
