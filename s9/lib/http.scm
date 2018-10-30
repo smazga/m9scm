@@ -1,22 +1,35 @@
-;; Try to implement the following in both implementations so that http stuff can be platform agnostic
+;; S9 LIB  (http:get string)                       ==> string
+;;         (http:post string string)               ==> string
 
-;; (http:get url) => string
-;;	execute a GET and return the response
-;; (http:post url postdata) => string
-;;	execute a POST and return the response
+;;         (http:new-session string)               ==> http session
+;;         (http:basic_auth session)               ==> unspecific
+;; 	(http:user:pass session string string)  ==> unspecific
+;; 	(http:get-cookies session)              ==> vector
+;; 	(http:get-cookie session string)        ==> string
+;; 	(http:set-cookies session vector)       ==> unspecific
 
-;; (http:basic_auth session) => unspecific
-;;	enable http basic auth
-;; (http:user:pass session user pass) =>unspecific
-;;	take a user/pass combo and create a basic auth digest
-;; (http:insecure session) => unspecific
-;;	turn off ssl safety checks
-;; (http:get-cookies session) => vector
-;;	return cookies
-;; (http:get-cookie session regex) => string
-;;	return a single cookie matched with a regex
-;; (http:set-cookies session cookies) => unspecific
-;;	set the cookies to the passed vector
+;;         (load-from-library "http:scm")
+
+;; The goal is to make the HTTP library cross-platform. At the moment importing
+;; HTTP.SCM loads the curl extension in unix and the webfs in plan9.
+
+;; HTTP:NEW-SESSION creates and returns a session object appropriate for the
+;; platform: a curl-easy instance for unix, and a webfs instance for plan9.
+
+;; HTTP:GET takes a url and returns the response as a string.
+
+;; HTTP:POST takes a url and a payload and returns the response as a string.
+
+;; HTTP:BASIC_AUTH enables http basic auth behavior on the session.
+
+;; HTTP:USER:PASS sets the basic auth credentials on the session.
+
+;; HTTP:GET-COOKIES returns all known cookies from give session.
+
+;; HTTP:GET-COOKIE searches for a cookie that matches the passed REGEX and
+;; returns it.
+
+;; HTTP:SET-COOKIES sets cookies on the session according to the vector passed.
 
 (let ((platform (symbol->string *host-system*)))
   (cond ((string=? "plan9" platform)
