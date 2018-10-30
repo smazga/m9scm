@@ -1255,7 +1255,31 @@ cell pp_sys_magic_const(cell x) {
 }
 
 int system(const char* cmd) {
-	return 1;
+	int result = 0;
+	Waitmsg *wmsg;
+
+	switch(fork()) {
+	case -1:
+			return -1;
+	case 0:
+		close(0);
+		close(2);
+		execl("/bin/rc", "-c", cmd, NULL);
+		exits(nil);
+	default:
+		wmsg = wait();
+		if (strlen(wmsg->msg) > 0) {
+			result = -1;
+			memcpy(Last_errstr, wmsg->msg, sizeof(Last_errstr));
+		}
+		free(wmsg);
+	}
+
+	return result;
+}
+
+cell pp_sys_err(cell x) {
+	return make_string(Last_errstr, strlen(Last_errstr));
 }
 
 S9_PRIM Plan9_primitives[] = {
@@ -1272,6 +1296,7 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:convd2m",    pp_sys_convD2M,    1, 1, { VEC,___,___ } },
  {"sys:dirread",    pp_sys_dirread,    1, 1, { INT,___,___ } },
  {"sys:dup",        pp_sys_dup,        2, 2, { INT,INT,___ } },
+ {"sys:err",		pp_sys_err,        0, 0, { ___,___,___ } },
  {"sys:errstr",     pp_sys_errstr,     1, 1, { STR,___,___ } },
  {"sys:exec",       pp_sys_exec,       2, 2, { STR,LST,___ } },
  {"sys:exit",       pp_sys_exit,       0, 0, { ___,___,___ } },
