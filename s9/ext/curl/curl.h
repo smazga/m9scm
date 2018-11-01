@@ -1,18 +1,17 @@
 #include "const.h"
 
-int find_magic_const(cell x) {
-	char*		name = string(car(x));
-	Magic_const	*k;
+cell pp_curl_load_consts(cell x) {
+	int i;
 
-	for (k = magic_const; k->name; k++)
-		if (strcmp(k->name, name) == 0)
-			return k->value;
-	return -1;
+	for(i = 0; consts[i].name != NULL; i++) {
+		char cmd[128];
+		sprintf(cmd, "(define curl:%s %d)", consts[i].name, consts[i].value);
+		eval(xsread(cmd));
+	}
+
+	return UNSPECIFIC;
 }
 
-cell pp_sys_magic_const(cell x) {
-	return make_integer(find_magic_const(x));
-}
 
 /* This is taken directly from the curl source...I guess this is one way to handle dynamic types in c */
 #define _curl_is_long_option(option)                                          \

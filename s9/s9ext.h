@@ -23,3 +23,15 @@
 void add_primitives(char *name, S9_PRIM *p);
 void error(char *msg, cell expr);
 cell integer_value(char *src, cell x);
+
+extern cell xsread(char *s);
+extern cell eval(cell x);
+
+struct Sys_const {
+	char*	name;
+	int	value;
+};
+
+typedef struct Sys_const Sys_const;
+
+#define CONST(x) { #x, (int)x }

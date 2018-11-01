@@ -1049,6 +1049,61 @@ cell pp_sys_inet_listen(cell x) {
 
 #endif /* NETWORK */
 
+cell pp_load_consts(cell x) {
+	Sys_const consts[] = {
+		CONST(F_OK),
+		CONST(X_OK),
+		CONST(W_OK),
+		CONST(R_OK),
+		CONST(O_RDONLY),
+		CONST(O_WRONLY),
+		CONST(O_RDWR),
+		CONST(SEEK_SET),
+		CONST(SEEK_CUR),
+		CONST(SEEK_END),
+		CONST(SIGHUP),
+		CONST(SIGINT),
+		CONST(SIGQUIT),
+		CONST(SIGILL),
+		CONST(SIGTRAP),
+		CONST(SIGABRT),
+		CONST(SIGEMT),
+		CONST(SIGFPE),
+		CONST(SIGKILL),
+		CONST(SIGBUS),
+		CONST(SIGSEGV),
+		CONST(SIGSYS),
+		CONST(SIGPIPE),
+		CONST(SIGALRM),
+		CONST(SIGTERM),
+		CONST(S_ISUID),
+		CONST(S_ISGID),
+		CONST(S_ISVTX),
+		CONST(S_IRUSR),
+		CONST(S_IRWXU),
+		CONST(S_IWUSR),
+		CONST(S_IXUSR),
+		CONST(S_IRWXG),
+		CONST(S_IRGRP),
+		CONST(S_IWGRP),
+		CONST(S_IXGRP),
+		CONST(S_IRWXO),
+		CONST(S_IROTH),
+		CONST(S_IWOTH),
+		CONST(S_IXOTH),
+		{ NULL, 0 },
+	};
+	int i;
+
+	for(i = 0; consts[i].name != NULL; i++) {
+		char cmd[128];
+		sprintf(cmd, "(define sys:%s %d)", consts[i].name, consts[i].value);
+		eval(xsread(cmd));
+	}
+
+	return UNSPECIFIC;
+}
+
 S9_PRIM Unix_primitives[] = {
  { "sys:access",           pp_sys_access,           2,  2, { STR,INT,___ } },
  { "sys:catch-errors",     pp_sys_catch_errors,     1,  1, { BOL,___,___ } },
@@ -1130,8 +1185,10 @@ S9_PRIM Unix_primitives[] = {
  { "sys:inet-getpeername", pp_sys_inet_getpeername, 1,  1, { INT,___,___ } },
  { "sys:inet-listen",      pp_sys_inet_listen,      3,  3, { ___,STR,INT } },
 #endif /* NETWORK */
+ { "sys:load-consts",	   pp_load_consts,          0,  0, { ___,___,___ } },
  { NULL }
 };
+
 
 void sys_init(void) {
 	signal(SIGPIPE, SIG_IGN);

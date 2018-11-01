@@ -53,6 +53,7 @@
 (load-from-library "for-all.scm")
 (load-from-library "string-split.scm")
 (load-from-library "string-unsplit.scm")
+(sys:load-consts)
 
 (define sys:access-f-ok (sys:get-magic-value "F_OK"))
 (define sys:access-x-ok (sys:get-magic-value "X_OK"))
