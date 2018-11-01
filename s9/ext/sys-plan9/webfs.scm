@@ -1,16 +1,24 @@
 (require-extension sys-plan9)
 
+(define *debug* #t)
+(define (debug msg) (if *debug* (format #t "~A~%" msg) #f))
+
 (define *useragent* "useragent 's9fes webfs/0.1 (compatible; nope)'")
-(define-structure webfs (path "") (ctl "") (payload '()) (stop '()))
+(define-structure webfs
+	(path "") (ctl "") (payload '()) (cookies '()) (stop '()))
 
 (define (create-webfs url)
 	(let* ((id (car (read-file (open-input-file "/mnt/web/clone"))))
 				 (path (string-append "/mnt/web/" id "/"))
-				 (ctl (string-append path "ctl")))
-		(make-webfs
-			path ctl '()
-			(sys:open ctl sys:OREAD) ; simply to keep the connection active
-)))
+				 (ctl (string-append path "ctl"))
+				 (session
+					(make-webfs	path ctl '()
+						(sys:open ctl sys:OREAD) ; simply to keep the connection active
+					)))
+		(webfs:set-url session url)
+		(debug (format #f "setting url: ~A" url))
+		session
+))
 
 ; not finished
 (define (webfs:add-creds creds)
@@ -32,9 +40,12 @@
 (define (webfs:path-read w dir)
 	(read-file (open-input-file (string-append (webfs-path w) dir))))
 
+(define (webfs:set-url w url)
+	(webfs:ctl-write w (string-append "url " url)))
+
 (define (webfs:get w url)
 	(let ()
-		(webfs:ctl-write w (string-append "url " url))
+		(webfs:set-url w url)
 		(webfs:body w)))
 
 (define (webfs:post w url body creds)
@@ -46,14 +57,13 @@
 
 ; with-input-from-file doesn't seem to work for this for some reason
 (define (webfs:body w)
+	(debug "reading...")
 	(let* ((bpath (string-append (webfs-path w) "body"))
 				 (bhandle (sys:open bpath sys:OREAD)))
 			(let loop ((str "")
 								 (b (sys:read bhandle 1024)))
 				(if (eof-object? b) str
 					(loop (string-append str b) (sys:read bhandle 1024))))))
-
-; todo: It's likely too inefficient to create new connections every time.
 
 ;; ======= http code =======
 
@@ -66,6 +76,18 @@
 (define (http:set-headers session headers) '())
 
 (define (http:set-cookies session cookies) '())
+
+(define (http:get-cookies session)
+	(let* ((f (sys:open "/mnt/webcookies/http" sys:ORDWR))
+				(url (read-file (open-input-file (string-append (webfs-path session) "parsed/url"))))
+				(cookies ""))
+	(debug (format #f "read url: ~A" (car url)))
+	(sys:write f (car url))
+	(set! cookies (sys:read f 4096))
+	(debug (format #f "cookies: ~A" cookies))
+	(sys:close f)
+	cookies
+))
 
 (define (http:get url . options)
 	(let ((w (create-webfs url)))
