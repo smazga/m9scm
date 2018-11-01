@@ -447,50 +447,7 @@ cell pp_sys_lseek(cell x) {
 }
 
 cell pp_sys_get_magic_value(cell x) {
-	char	*s = string(car(x));
-
-	if (!strcmp(s, "F_OK")) return make_integer(F_OK);
-	if (!strcmp(s, "X_OK")) return make_integer(X_OK);
-	if (!strcmp(s, "W_OK")) return make_integer(W_OK);
-	if (!strcmp(s, "R_OK")) return make_integer(R_OK);
-	if (!strcmp(s, "O_RDONLY")) return make_integer(O_RDONLY);
-	if (!strcmp(s, "O_WRONLY")) return make_integer(O_WRONLY);
-	if (!strcmp(s, "O_RDWR")) return make_integer(O_RDWR);
-	if (!strcmp(s, "SEEK_SET")) return make_integer(SEEK_SET);
-	if (!strcmp(s, "SEEK_CUR")) return make_integer(SEEK_CUR);
-	if (!strcmp(s, "SEEK_END")) return make_integer(SEEK_END);
-	if (!strcmp(s, "SIGHUP")) return make_integer(SIGHUP);
-	if (!strcmp(s, "SIGINT")) return make_integer(SIGINT);
-	if (!strcmp(s, "SIGQUIT")) return make_integer(SIGQUIT);
-	if (!strcmp(s, "SIGILL")) return make_integer(SIGILL);
-	if (!strcmp(s, "SIGTRAP")) return make_integer(SIGTRAP);
-	if (!strcmp(s, "SIGABRT")) return make_integer(SIGABRT);
-	if (!strcmp(s, "SIGEMT")) return make_integer(SIGEMT);
-	if (!strcmp(s, "SIGFPE")) return make_integer(SIGFPE);
-	if (!strcmp(s, "SIGKILL")) return make_integer(SIGKILL);
-	if (!strcmp(s, "SIGBUS")) return make_integer(SIGBUS);
-	if (!strcmp(s, "SIGSEGV")) return make_integer(SIGSEGV);
-	if (!strcmp(s, "SIGSYS")) return make_integer(SIGSYS);
-	if (!strcmp(s, "SIGPIPE")) return make_integer(SIGPIPE);
-	if (!strcmp(s, "SIGALRM")) return make_integer(SIGALRM);
-	if (!strcmp(s, "SIGTERM")) return make_integer(SIGTERM);
-	if (!strcmp(s, "S_ISUID")) return make_integer(S_ISUID);
-	if (!strcmp(s, "S_ISGID")) return make_integer(S_ISGID);
-	if (!strcmp(s, "S_ISVTX")) return make_integer(S_ISVTX);
-	if (!strcmp(s, "S_IRUSR")) return make_integer(S_IRUSR);
-	if (!strcmp(s, "S_IRWXU")) return make_integer(S_IRWXU);
-	if (!strcmp(s, "S_IWUSR")) return make_integer(S_IWUSR);
-	if (!strcmp(s, "S_IXUSR")) return make_integer(S_IXUSR);
-	if (!strcmp(s, "S_IRWXG")) return make_integer(S_IRWXG);
-	if (!strcmp(s, "S_IRGRP")) return make_integer(S_IRGRP);
-	if (!strcmp(s, "S_IWGRP")) return make_integer(S_IWGRP);
-	if (!strcmp(s, "S_IXGRP")) return make_integer(S_IXGRP);
-	if (!strcmp(s, "S_IRWXO")) return make_integer(S_IRWXO);
-	if (!strcmp(s, "S_IROTH")) return make_integer(S_IROTH);
-	if (!strcmp(s, "S_IWOTH")) return make_integer(S_IWOTH);
-	if (!strcmp(s, "S_IXOTH")) return make_integer(S_IXOTH);
-	else error("sys:get-magic-value: requested value not found",
-			car(x));
+	error("You should be calling the const directly:", x);
 	return UNDEFINED;
 }
 
