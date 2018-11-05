@@ -1,8 +1,9 @@
 (load-from-library "regex.scm")
+(curl:load-consts)
 
 (define (http:new-session url)
   (let ((easy (curl:easy-init)))
-    (curl:setopt easy "CURLOPT_URL" url)
+    (curl:setopt easy curl:CURLOPT_URL url)
     easy))
 
 (define (http:cleanup easy)
@@ -16,7 +17,7 @@
   (curl:perform easy))
 
 (define (http:post easy postdata)
-  (curl:setopt easy "CURLOPT_POSTFIELDS" postdata)
+  (curl:setopt easy curl:CURLOPT_POSTFIELDS postdata)
   (curl:perform easy))
 
 (define (apply-options easy options)
@@ -28,15 +29,15 @@
 (define (http:basic_auth easy)
   (curl:setopt
     easy
-    "CURLOPT_HTTPAUTH"
-    (sys:magic-const "CURLAUTH_BASIC")))
+    curl:CURLOPT_HTTPAUTH
+    curl:CURLAUTH_BASIC))
 
 (define (http:user:pass easy user pass)
-  (curl:setopt easy "CURLOPT_USERPWD" (format #f "~A:~A" user pass)))
+  (curl:setopt easy curl:CURLOPT_USERPWD (format #f "~A:~A" user pass)))
 
 (define (http:insecure easy)
-  (curl:setopt easy "CURLOPT_SSL_VERIFYHOST" 0)
-  (curl:setopt easy "CURLOPT_SSL_VERIFYPEER" 0))
+  (curl:setopt easy curl:CURLOPT_SSL_VERIFYHOST 0)
+  (curl:setopt easy curl:CURLOPT_SSL_VERIFYPEER 0))
 
 (define (http:get-cookies easy)
   (curl:get-cookies easy))

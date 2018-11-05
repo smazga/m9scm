@@ -447,50 +447,7 @@ cell pp_sys_lseek(cell x) {
 }
 
 cell pp_sys_get_magic_value(cell x) {
-	char	*s = string(car(x));
-
-	if (!strcmp(s, "F_OK")) return make_integer(F_OK);
-	if (!strcmp(s, "X_OK")) return make_integer(X_OK);
-	if (!strcmp(s, "W_OK")) return make_integer(W_OK);
-	if (!strcmp(s, "R_OK")) return make_integer(R_OK);
-	if (!strcmp(s, "O_RDONLY")) return make_integer(O_RDONLY);
-	if (!strcmp(s, "O_WRONLY")) return make_integer(O_WRONLY);
-	if (!strcmp(s, "O_RDWR")) return make_integer(O_RDWR);
-	if (!strcmp(s, "SEEK_SET")) return make_integer(SEEK_SET);
-	if (!strcmp(s, "SEEK_CUR")) return make_integer(SEEK_CUR);
-	if (!strcmp(s, "SEEK_END")) return make_integer(SEEK_END);
-	if (!strcmp(s, "SIGHUP")) return make_integer(SIGHUP);
-	if (!strcmp(s, "SIGINT")) return make_integer(SIGINT);
-	if (!strcmp(s, "SIGQUIT")) return make_integer(SIGQUIT);
-	if (!strcmp(s, "SIGILL")) return make_integer(SIGILL);
-	if (!strcmp(s, "SIGTRAP")) return make_integer(SIGTRAP);
-	if (!strcmp(s, "SIGABRT")) return make_integer(SIGABRT);
-	if (!strcmp(s, "SIGEMT")) return make_integer(SIGEMT);
-	if (!strcmp(s, "SIGFPE")) return make_integer(SIGFPE);
-	if (!strcmp(s, "SIGKILL")) return make_integer(SIGKILL);
-	if (!strcmp(s, "SIGBUS")) return make_integer(SIGBUS);
-	if (!strcmp(s, "SIGSEGV")) return make_integer(SIGSEGV);
-	if (!strcmp(s, "SIGSYS")) return make_integer(SIGSYS);
-	if (!strcmp(s, "SIGPIPE")) return make_integer(SIGPIPE);
-	if (!strcmp(s, "SIGALRM")) return make_integer(SIGALRM);
-	if (!strcmp(s, "SIGTERM")) return make_integer(SIGTERM);
-	if (!strcmp(s, "S_ISUID")) return make_integer(S_ISUID);
-	if (!strcmp(s, "S_ISGID")) return make_integer(S_ISGID);
-	if (!strcmp(s, "S_ISVTX")) return make_integer(S_ISVTX);
-	if (!strcmp(s, "S_IRUSR")) return make_integer(S_IRUSR);
-	if (!strcmp(s, "S_IRWXU")) return make_integer(S_IRWXU);
-	if (!strcmp(s, "S_IWUSR")) return make_integer(S_IWUSR);
-	if (!strcmp(s, "S_IXUSR")) return make_integer(S_IXUSR);
-	if (!strcmp(s, "S_IRWXG")) return make_integer(S_IRWXG);
-	if (!strcmp(s, "S_IRGRP")) return make_integer(S_IRGRP);
-	if (!strcmp(s, "S_IWGRP")) return make_integer(S_IWGRP);
-	if (!strcmp(s, "S_IXGRP")) return make_integer(S_IXGRP);
-	if (!strcmp(s, "S_IRWXO")) return make_integer(S_IRWXO);
-	if (!strcmp(s, "S_IROTH")) return make_integer(S_IROTH);
-	if (!strcmp(s, "S_IWOTH")) return make_integer(S_IWOTH);
-	if (!strcmp(s, "S_IXOTH")) return make_integer(S_IXOTH);
-	else error("sys:get-magic-value: requested value not found",
-			car(x));
+	error("You should be calling the const directly:", x);
 	return UNDEFINED;
 }
 
@@ -1049,6 +1006,61 @@ cell pp_sys_inet_listen(cell x) {
 
 #endif /* NETWORK */
 
+cell pp_load_consts(cell x) {
+	Sys_const consts[] = {
+		CONST(F_OK),
+		CONST(X_OK),
+		CONST(W_OK),
+		CONST(R_OK),
+		CONST(O_RDONLY),
+		CONST(O_WRONLY),
+		CONST(O_RDWR),
+		CONST(SEEK_SET),
+		CONST(SEEK_CUR),
+		CONST(SEEK_END),
+		CONST(SIGHUP),
+		CONST(SIGINT),
+		CONST(SIGQUIT),
+		CONST(SIGILL),
+		CONST(SIGTRAP),
+		CONST(SIGABRT),
+		CONST(SIGEMT),
+		CONST(SIGFPE),
+		CONST(SIGKILL),
+		CONST(SIGBUS),
+		CONST(SIGSEGV),
+		CONST(SIGSYS),
+		CONST(SIGPIPE),
+		CONST(SIGALRM),
+		CONST(SIGTERM),
+		CONST(S_ISUID),
+		CONST(S_ISGID),
+		CONST(S_ISVTX),
+		CONST(S_IRUSR),
+		CONST(S_IRWXU),
+		CONST(S_IWUSR),
+		CONST(S_IXUSR),
+		CONST(S_IRWXG),
+		CONST(S_IRGRP),
+		CONST(S_IWGRP),
+		CONST(S_IXGRP),
+		CONST(S_IRWXO),
+		CONST(S_IROTH),
+		CONST(S_IWOTH),
+		CONST(S_IXOTH),
+		{ NULL, 0 },
+	};
+	int i;
+
+	for(i = 0; consts[i].name != NULL; i++) {
+		char cmd[128];
+		sprintf(cmd, "(define sys:%s %d)", consts[i].name, consts[i].value);
+		eval(xsread(cmd));
+	}
+
+	return UNSPECIFIC;
+}
+
 S9_PRIM Unix_primitives[] = {
  { "sys:access",           pp_sys_access,           2,  2, { STR,INT,___ } },
  { "sys:catch-errors",     pp_sys_catch_errors,     1,  1, { BOL,___,___ } },
@@ -1130,8 +1142,10 @@ S9_PRIM Unix_primitives[] = {
  { "sys:inet-getpeername", pp_sys_inet_getpeername, 1,  1, { INT,___,___ } },
  { "sys:inet-listen",      pp_sys_inet_listen,      3,  3, { ___,STR,INT } },
 #endif /* NETWORK */
+ { "sys:load-consts",	   pp_load_consts,          0,  0, { ___,___,___ } },
  { NULL }
 };
+
 
 void sys_init(void) {
 	signal(SIGPIPE, SIG_IGN);
