@@ -130,12 +130,12 @@ cell pp_setopt(cell x) {
 	Session *session;
 	CURLoption option;
 	CURLcode code;
-	char name[] = "sys:setopt";
+	char name[] = "curl:setopt";
 
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
-	option = find_magic_const(cdr(x));
+	option = integer_value(name, cadr(x));
 	if (_curl_is_long_option(option)) {
 		long parameter;
 		parameter = integer_value(name, caddr(x));
@@ -161,7 +161,7 @@ cell pp_getinfo(cell x) {
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
-	info = find_magic_const(cdr(x));
+	info = integer_value(name, cdr(x));
 
 	if (_curl_is_long_info(info)) {
 		long result;
@@ -298,14 +298,14 @@ cell pp_set_headers(cell x) {
 
 S9_PRIM Curl_primitives[] = {
 	{ "curl:easy-init",	pp_easy_init,		0, 0, { ___,___,___ } },
-	{ "curl:setopt",	pp_setopt,		3, 3, { INT,STR,___ } },
+	{ "curl:setopt",	pp_setopt,		3, 3, { INT,INT,___ } },
 	{ "curl:perform",	pp_perform,		1, 1, { INT,___,___ } },
 	{ "curl:cleanup",	pp_cleanup,		1, 1, { INT,___,___ } },
 	{ "curl:getinfo",	pp_getinfo,		2, 2, { INT,STR,___ } },
 	{ "curl:get-cookies",   pp_get_cookies,         1, 1, { INT,___,___ } },
 	{ "curl:set-cookies",   pp_set_cookies,         2, 2, { INT,VEC,___ } },
 	{ "curl:set-headers",   pp_set_headers,         2, 2, { INT,VEC,___ } },
-	{ "sys:magic-const",	pp_sys_magic_const,	1, 1, { STR,___,___ } },
+	{ "curl:load-consts",	pp_curl_load_consts,	0, 0, { ___,___,___ } },
 	{ NULL }
 };
 
