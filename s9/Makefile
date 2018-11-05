@@ -41,6 +41,12 @@ EXTRA_OBJS+=	curl.o
 EXTRA_INIT+=	curl_init();
 EXTRA_LIBS+=	-lcurl
 
+# Uncomment these to include the nuklear extensions
+EXTRA_SCM+=
+EXTRA_OBJS+=	nuklearS9.o
+EXTRA_INIT+=	nk_ext_init();
+EXTRA_LIBS+=
+
 # Options to be added to $(DEFS)
 #	-DS9_BITS_PER_WORD_64	# 64-bit build (don't do this!)
 #	-DLIBRARY_PATH="\"dir:...\""
@@ -67,7 +73,7 @@ LIBDIR=	$(PREFIX)/lib
 MANDIR=	$(PREFIX)/man/man1
 
 # Set up environment to be used during the build process
-BUILD_ENV=	env S9FES_LIBRARY_PATH=.:lib:ext/sys-unix:ext/curses:ext/csv:contrib:ext/curl S9FES_IMAGE_DIR=.
+BUILD_ENV=	env S9FES_LIBRARY_PATH=.:lib:ext/sys-unix:ext/curses:ext/csv:contrib:ext/curl:ext/nuklear S9FES_IMAGE_DIR=.
 
 SETPREFIX=	sed -e "s|^\#! /usr/local|\#! $(PREFIX)|"
 
@@ -105,6 +111,9 @@ csv.o:	ext/csv/csv.c s9core.h s9import.h s9ext.h
 
 curl.o:	ext/curl/curl.c ext/curl/const.h ext/curl/curl.h s9core.h s9import.h s9ext.h
 	$(CC) $(CFLAGS) $(DEFS) -I . -o curl.o -c ext/curl/curl.c
+
+nuklearS9.o:	ext/nuklear/nuklearS9.c s9core.h s9import.h s9ext.h
+	$(CC) $(CFLAGS) $(DEFS) -I . -o nuklearS9.o -c ext/nuklear/nuklearS9.c
 
 lint:
 	cc -g -Wall -ansi -pedantic -O3 s9.c s9core.c && rm a.out
