@@ -42,7 +42,7 @@ EXTRA_INIT+=	curl_init();
 EXTRA_LIBS+=	-lcurl
 
 # Uncomment these to include the nuklear extensions
-EXTRA_SCM+=	-l ext/nuklear/nk.scm
+EXTRA_SCM+=
 EXTRA_OBJS+=	nuklearS9.o
 EXTRA_INIT+=	nk_ext_init();
 EXTRA_LIBS+=
@@ -163,6 +163,7 @@ install-s9:	s9 s9.scm s9.image s9.1.gz libs9core.a
 	install $C -m 0644 ext/curses/*.scm $(S9DIR)
 	install $C -m 0644 ext/csv/*.scm $(S9DIR)
 	install $C -m 0644 ext/curl/*.scm $(S9DIR)
+	install $C -m 0644 ext/nuklear/*.scm $(S9DIR)
 	install $C -m 0644 contrib/* $(S9DIR)
 	install $C -m 0644 s9.1.gz $(MANDIR)
 	(tar cf - help | tar xfC - $(S9DIR))
