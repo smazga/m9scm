@@ -42,7 +42,7 @@ EXTRA_INIT+=	curl_init();
 EXTRA_LIBS+=	-lcurl
 
 # Uncomment these to include the nuklear extensions
-EXTRA_SCM+=
+EXTRA_SCM+=	-l ext/nuklear/nk.scm
 EXTRA_OBJS+=	nuklearS9.o
 EXTRA_INIT+=	nk_ext_init();
 EXTRA_LIBS+=
