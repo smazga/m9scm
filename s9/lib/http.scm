@@ -2,7 +2,7 @@
 ;;         (http:post string string)               ==> string
 
 ;;         (http:new-session string)               ==> http session
-;;         (http:basic_auth session)               ==> unspecific
+;;         (http:basic-auth session)               ==> unspecific
 ;; 	(http:user:pass session string string)  ==> unspecific
 ;; 	(http:get-cookies session)              ==> vector
 ;; 	(http:get-cookie session string)        ==> string
@@ -20,7 +20,7 @@
 
 ;; HTTP:POST takes a url and a payload and returns the response as a string.
 
-;; HTTP:BASIC_AUTH enables http basic auth behavior on the session.
+;; HTTP:BASIC-AUTH enables http basic auth behavior on the session.
 
 ;; HTTP:USER:PASS sets the basic auth credentials on the session.
 
