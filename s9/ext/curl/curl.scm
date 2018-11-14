@@ -1,4 +1,3 @@
-(load-from-library "regex.scm")
 (curl:load-consts)
 
 (define (http:new-session url)
@@ -41,16 +40,3 @@
 
 (define (http:get-cookies easy)
   (curl:get-cookies easy))
-
-(define (match-regex rgx items)
-  (if (null? items)
-      '()
-      (let ((match (re-match rgx (car items))))
-        (if match
-            (car items)
-            (match-regex rgx (cdr items))))))
-
-(define (http:get-cookie easy regex)
-  (let ((rgx (re-comp regex))
-        (cookies (vector->list (curl:get-cookies easy))))
-    (match-regex rgx cookies)))

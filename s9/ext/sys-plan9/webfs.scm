@@ -45,10 +45,29 @@
 	(debug (format #f "setting url: ~A" url))
 	(webfs:ctl-write w (string-append "url " url)))
 
-(define (webfs:get-url w)
-	(read-file
-		(open-input-file
-			(string-append (webfs-path w) "parsed/url"))))
+(define (webfs:url w)
+	(car
+		(read-file
+			(open-input-file
+				(string-append (webfs-path w) "parsed/url")))))
+
+(define (webfs:host w)
+	(car
+		(read-file
+			(open-input-file
+				(string-append (webfs-path w) "parsed/host")))))
+
+(define (webfs:scheme w)
+	(car
+		(read-file
+			(open-input-file
+				(string-append (webfs-path w) "parsed/scheme")))))
+
+(define (webfs:path w)
+	(car
+		(read-file
+			(open-input-file
+				(string-append (webfs-path w) "parsed/path")))))
 
 (define (webfs:get w url)
 	(let ()
@@ -84,10 +103,12 @@
 
 (define (http:get-cookies session)
 	(let* ((f (sys:open "/mnt/webcookies/http" sys:ORDWR))
-				(url (webfs:get-url session))
+				(scheme (webfs:scheme session))
+				(host (webfs:host session))
+				(url (string-append scheme "://" host))
 				(cookies ""))
-	(debug (format #f "cookies read url: ~A" (car url)))
-	(sys:write f (car url))
+	(debug (format #f "cookies read url: ~A" url))
+	(sys:write f url)
 	(set! cookies (sys:read f 4096))
 	(debug (format #f "cookies: ~A" cookies))
 	(sys:close f)
@@ -112,11 +133,11 @@
 (define (http:insecure session) '())
 
 (define (http:user:pass session user pass)
-	(let ((scheme (webfs:path-read session "parsed/scheme"))
-				(host (webfs:path-read session "parsed/host"))
-				(path (webfs:path-read session "parsed/path")))
+	(let ((scheme (webfs:scheme session))
+				(host (webfs:host session))
+				(path (webfs:path session)))
 		(webfs:set-url session (format #f "~A://~A:~A@~A~A"
-			(car scheme) user pass (car host) (car path)))))
+			scheme user pass host path))))
 
 (define (http:basic-auth session) '())
 
