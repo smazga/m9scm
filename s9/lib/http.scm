@@ -31,8 +31,23 @@
 
 ;; HTTP:SET-COOKIES sets cookies on the session according to the vector passed.
 
+(load-from-library "regex.scm")
+
 (let ((platform (symbol->string *host-system*)))
   (cond ((string=? "plan9" platform)
 	 (load-from-library "webfs.scm"))
 	((string=? "unix" platform)
 	 (load-from-library "curl.scm"))))
+
+(define (match-regex rgx items)
+  (if (null? items)
+      '()
+      (let ((match (re-match rgx (car items))))
+        (if match
+            (car items)
+            (match-regex rgx (cdr items))))))
+
+(define (http:get-cookie session regex)
+  (let ((rgx (re-comp regex))
+        (cookies (vector->list (http:get-cookies session))))
+    (match-regex rgx cookies)))
