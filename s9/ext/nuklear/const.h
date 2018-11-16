@@ -124,7 +124,7 @@ cell pp_nk_load_consts(cell x) {
 
 	for(i = 0; consts[i].name != NULL; i++) {
 		char cmd[128];
-		sprintf(cmd, "(define nk:%s %d)", consts[i].name, consts[i].value);
+		sprintf(cmd, "(define nk:%s %d)", (consts[i].name)+3, consts[i].value);
 		eval(xsread(cmd));
 	}
 
