@@ -80,7 +80,7 @@ cell slist2cell(struct curl_slist *slist) {
 	return n;
 }
 
-cell pp_easy_init(cell x) {
+cell pp_easy_init(void) {
 	CURL *curl;
 
 	if (sessionidx >= sizeof(sessionlist))
@@ -94,7 +94,7 @@ cell pp_easy_init(cell x) {
 
 	curl = curl_easy_init();
 	if (curl == NULL) {
-		error("curl:make-handle", x);
+		error("curl:make-handle", parg(1));
 		return UNSPECIFIC;
 	}
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer);
@@ -105,10 +105,12 @@ cell pp_easy_init(cell x) {
 	return make_integer(sessionidx++);
 }
 
-cell pp_cleanup(cell x) {
+cell pp_cleanup(void) {
+	cell x;
 	Session *session;
 	char *name = "curl:cleanup";
 
+	x = parg(1);
 	session = SESSION;
 
 	if (session->cookies != NULL)
@@ -126,12 +128,14 @@ cell pp_cleanup(cell x) {
 	return UNSPECIFIC;
 }
 
-cell pp_setopt(cell x) {
+cell pp_setopt(void) {
+	cell x;
 	Session *session;
 	CURLoption option;
 	CURLcode code;
 	char name[] = "curl:setopt";
 
+	x = parg(1);
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
@@ -152,12 +156,14 @@ cell pp_setopt(cell x) {
 	return UNSPECIFIC;
 }
 
-cell pp_getinfo(cell x) {
+cell pp_getinfo(void) {
+	cell  x;
 	Session *session;
 	CURLINFO info;
 	CURLcode code = CURLE_OK;
 	char *name = "curl:getinfo";
 
+	x = parg(1);
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
@@ -210,12 +216,13 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *data) {
 	return realsize;
 }
 
-cell pp_perform(cell x) {
+cell pp_perform(void) {
 	Session *session;
 	CURLcode code;
 	char name[] = "sys:perform";
-	cell n;
+	cell x, n;
 
+	x = parg(1);
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
@@ -234,23 +241,26 @@ cell pp_perform(cell x) {
 	return n;
 }
 
-cell pp_get_cookies(cell x) {
+cell pp_get_cookies(void) {
+	cell x;
 	Session *session;
 	char *name = "curl:get-cookies";
 
+	x = parg(1);
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
 	return slist2cell(session->cookies);
 }
 
-cell pp_set_cookies(cell x) {
+cell pp_set_cookies(void) {
 	Session *session;
 	CURLcode code;
-	cell *v;
+	cell x, *v;
 	int cookies, i;
 	char *name = "curl:set-cookies";
 
+	x = parg(1);
 	session = SESSION;
 	CHECK_SESSION(session, x);
 
@@ -266,13 +276,14 @@ cell pp_set_cookies(cell x) {
 	return NIL;
 }
 
-cell pp_set_headers(cell x) {
+cell pp_set_headers(void) {
 	Session *session;
 	CURLcode code;
-	cell *v;
+	cell x, *v;
 	int headers, i;
 	char *name = "curl:set-headers";
 
+	x = parg(1);
 	session = SESSION;
 	CHECK_SESSION(session, x);
 

@@ -5413,7 +5413,6 @@ cell eval(cell x, int r) {
  }
 
 void keyboard_quit(int sig) {
-	USED(sig);
 	fatal("received QUIT signal, exiting");
  }
 #endif /* unix */

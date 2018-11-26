@@ -194,8 +194,7 @@ install-progs:
 deinstall:	deinstall-s9 deinstall-util deinstall-progs
 
 deinstall-s9:
-	rm -f $(S9DIR)/help/* && rmdir $(S9DIR)/help
-	rm -f $(S9DIR)/* && rmdir $(S9DIR)
+	rm -rf $(S9DIR)
 	rm -f $(BINDIR)/s9
 	-rmdir $(BINDIR)
 	-rmdir $(MANDIR)
