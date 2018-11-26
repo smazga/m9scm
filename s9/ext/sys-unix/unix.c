@@ -941,7 +941,7 @@ cell pp_sys_inet_connect(void) {
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
-	r = getaddrinfo(string(parg(1)), string(parg(1)), &hints, &res);
+	r = getaddrinfo(string(parg(1)), string(parg(2)), &hints, &res);
 	if (r != 0)
 		return sys_error("sys:inet-connect/getaddrinfo");
 	s = -1;
