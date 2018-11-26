@@ -1,15 +1,8 @@
 
-	- disassembler
-
 	- clean up the library
 
 	- review systest
 
-	- optimizations:
-		variadic string-append
-		variadic vector-append
-
-	- EDOC: handle white space in block comments properly
-
-	- EDOC: troff mode
+	- EDOC: handle #| |# comments correctly
+		handle white space in block comments properly
 

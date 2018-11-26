@@ -7,8 +7,8 @@
 PREFIX=/usr/local
 
 # Base version and Release
-BASE=		20181002
-RELEASE=	20181025
+BASE=		20181115
+RELEASE=	20181124
 
 # Override default compiler and flags
 CC=	cc
@@ -42,7 +42,6 @@ EXTRA_INIT+=	curl_init();
 EXTRA_LIBS+=	-lcurl
 
 # Options to be added to $(DEFS)
-#	-DS9_BITS_PER_WORD_64	# 64-bit build (don't do this!)
 #	-DLIBRARY_PATH="\"dir:...\""
 #				# search path for LOCATE-FILE, etc
 #	-DIMAGE_DIR="\"dir\""	# location of image file
@@ -124,10 +123,13 @@ srtest:	s9 test.image
 realtest:	s9 test.image
 	$(BUILD_ENV) ./s9 -i test.image util/realtest.scm
 
+coretest:	s9core.c s9core.h s9import.h
+	$(CC) $(CFLAGS) $(DEFS) -DTEST s9core.c && ./a.out && rm -f a.out
+
 test.image:	s9 s9.scm
 	$(BUILD_ENV) ./s9 -i - $(EXTRA_SCM) -d test.image
 
-tests: test realtest srtest libtest systest
+tests: coretest test realtest srtest libtest systest
 
 install:	install-s9 install-util
 
@@ -218,10 +220,10 @@ tabs:
 	@find . -name \*.scm -exec grep -l "	" {} \;
 
 cd:
-	./s9 -i s9.image -f util/check-descr.scm
+	./s9 -i ./s9.image -f util/check-descr.scm
 
 clean:
-	rm -f s9 s9.image libs9core.a test.image s9.1.gz *.o *.core \
+	rm -f s9 s9.image libs9core.a test.image s9.1.gz *.o *.core a.out \
 		CATEGORIES.html HACKING.html core s9fes-$(RELEASE).tgz \
 		s9fes-$(BASE).tgz s9core-$(RELEASE).tgz __testfile__ \
 		_meta _toc.tr _xref.tr _ndx.tr
@@ -232,14 +234,10 @@ new-version:
 
 update-library:
 	vi util/make-docs
-	util/make-docs
-	vi util/make-help-links \
-		util/descriptions \
-		util/categories.html
-	cd help && s9 -f ../util/procedures.scm >INDEX
+	sh util/make-docs
+	vi util/descriptions util/categories.html
 	@echo
 	@echo "Now copy the new help pages from help-new to help"
-	@echo "and run util/fix-links.sh"
 
 s9.1.txt:	s9.1
 	$(CC) -o rpp util/rpp.c
@@ -247,18 +245,16 @@ s9.1.txt:	s9.1
 	rm -f rpp
 
 docs:	lib ext/sys-unix ext/sys-plan9 ext/curses ext/csv contrib
-	util/make-docs
+	sh util/make-docs
 	mv -f help-new/sys-unix/* help/sys-unix
-#	mv -f help-new/sys-plan9/* help/sys-plan9
 	mv -f help-new/curses/* help/curses
 #	mv -f help-new/csv/* help/csv
-	rm help-new/sys-plan9/*
-	rmdir help-new/sys-unix help-new/sys-plan9 help-new/curses help-new/csv
+	rmdir help-new/sys-unix help-new/curses help-new/csv
 	mv -f help-new/* help
 	rmdir help-new
 
 webdump:
-	util/make-html -r $(RELEASE)
+	sh util/make-html -r $(RELEASE)
 
 advdump:	prog/advgen.scm prog/adventure.adv prog/adventure.intro
 	sed -e 's/@dir/quest/' -e 's/@file/index/g' <util/pagehead >pagehead
@@ -282,8 +278,7 @@ mksums:	clean
 
 dist:	clean s9.1.txt
 	make clean
-	cd .. && \
-		tar cf - s9 | gzip -9 > s9fes-$(RELEASE).tgz && \
+	cd .. && tar cf - s9 | gzip -9 > s9fes-$(RELEASE).tgz && \
 		mv s9fes-$(RELEASE).tgz s9
 	ls -l s9fes-$(RELEASE).tgz | awk '{print int($$5/1024+.5)}'
 
@@ -291,7 +286,7 @@ cdist:
 	tar cf - s9core.[ch] s9import.h s9core.txt README.s9core \
 		| gzip -9 > s9core-$(RELEASE).tgz 
 
-arc:	clean s9.1.txt
+arc:	clean
 	cd .. && tar cf - s9 | gzip -9 > s9fes-$(BASE).tgz && \
 		mv s9fes-$(BASE).tgz s9
 	ls -l s9fes-$(BASE).tgz | awk '{print int($$5/1024+.5)}'
