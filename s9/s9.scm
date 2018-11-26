@@ -1540,3 +1540,11 @@
           (else 
             (loop (cdr as)
                   (cons (car as) a))))))
+
+(define *__deferred* '())
+(define-syntax (defer func)
+  `(set! *__deferred* (append *__deferred* (list (quote ,func)))))
+(define (**run-deferred**)
+  (for-each (lambda (i)
+              (eval i))
+            (reverse *__deferred*)))

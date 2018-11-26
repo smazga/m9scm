@@ -1,12 +1,12 @@
 #include "const.h"
 
-cell pp_curl_load_consts(cell x) {
+cell pp_curl_load_consts(void) {
 	int i;
 
 	for(i = 0; consts[i].name != NULL; i++) {
 		char cmd[128];
 		sprintf(cmd, "(define curl:%s %d)", consts[i].name, consts[i].value);
-		eval(xsread(cmd));
+		eval(xsread(cmd), 1);
 	}
 
 	return UNSPECIFIC;

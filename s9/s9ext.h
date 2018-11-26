@@ -31,7 +31,7 @@ void error(char *msg, cell expr);
 cell integer_value(char *src, cell x);
 
 extern cell xsread(char *s);
-extern cell eval(cell x);
+extern cell eval(cell x, int r);
 
 struct Sys_const {
 	char*	name;
