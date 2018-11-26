@@ -506,7 +506,8 @@
           (if (inexact? y)
               (if (positive? y)
                   0
-                  (/ 1 0))
+                  (error "expt: range error"
+                         (cons x (cons y '()))))
               (expt2 x y)))
         ((integer? y)
           (expt2 x y))
@@ -552,8 +553,8 @@
   (define (l-series x y r last lim)
     (let ((x (/ (- x 1) (+ x 1))))
       (l-series6 x y x r last lim)))
-  (cond ((negative? x)
-          (/ 1.0 0))
+  (cond ((not (positive? x))
+          (error "log: range error" x))
         ((< 0.1 x 5)
           (l-series x 1 0.0 1.0 #f))
         (else
@@ -1121,12 +1122,22 @@
           (apply print (cdr xs)))))
 
 (define (locate-file file)
-  (let loop ((paths *library-path*))
-    (and (not (null? paths))
-         (let ((full-path (string-append (car paths) "/" file)))
-           (if (file-exists? full-path)
-               full-path
-               (loop (cdr paths)))))))
+  (let* ((home      (environment-variable "HOME"))
+         (home-path (lambda (s)
+                      (if (not home)
+                          (error "locate-file: cannot locate home directory")
+                          (string-append
+                            home
+                            (substring s 1 (string-length s)))))))
+    (let loop ((paths *library-path*))
+      (and (not (null? paths))
+           (let* ((full-path (string-append (car paths) "/" file))
+                  (full-path (if (char=? #\~ (string-ref full-path 0))
+                                 (home-path full-path)
+                                 full-path)))
+             (if (file-exists? full-path)
+                 full-path
+                 (loop (cdr paths))))))))
 
 (define load-from-library 
   (let ((locate-file locate-file))
@@ -1264,6 +1275,7 @@
 (define (procedure? x) (procedure? x))
 (define (real? x) (real? x))
 (define (reverse! x) (reverse! x))
+(define (s9:bytecode x) (s9:bytecode x))
 (define (set-input-port! x) (set-input-port! x))
 (define (set-output-port! x) (set-output-port! x))
 (define (stats x) (stats x))
@@ -1528,11 +1540,3 @@
           (else 
             (loop (cdr as)
                   (cons (car as) a))))))
-
-(define *__deferred* '())
-(define-syntax (defer func)
-  `(set! *__deferred* (append *__deferred* (list (quote ,func)))))
-(define (**run-deferred**)
-  (for-each (lambda (i)
-	      (eval i))
-	    (reverse *__deferred*)))
