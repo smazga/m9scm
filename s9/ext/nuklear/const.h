@@ -1,4 +1,5 @@
 cell pp_nk_load_consts(cell x) {
+	USED(x);
 	Sys_const consts[] = {
 		CONST(NK_WINDOW_BORDER),
 		CONST(NK_WINDOW_MOVABLE),
