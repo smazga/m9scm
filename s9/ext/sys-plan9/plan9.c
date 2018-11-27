@@ -640,13 +640,14 @@ cell sys_ok(void) {
 	return Catch_errors? TRUE: UNSPECIFIC;
 }
 
-cell pp_sys_alarm(cell x) {
+cell pp_sys_alarm(void) {
+	cell x = parg(1);
 	if (alarm(integer_value("sys:alarm", car(x))))
 		return sys_error("sys:alarm", x);
 	return sys_ok();
 }
 
-cell pp_sys_await(cell) {
+cell pp_sys_await(void) {
 	char buf[ERRMAX+40];
 	int len =  await(buf, sizeof buf - 1);
 	if (len <= 0)
@@ -654,7 +655,8 @@ cell pp_sys_await(cell) {
 	return make_string(buf, len);
 }
 
-cell pp_sys_bind(cell x) {
+cell pp_sys_bind(void) {
+	cell x = parg(1);
 	return bind(string(car(x)), string(cadr(x)), 
 		integer_value("sys:access", caddr(x))) < 0? FALSE: TRUE;
 }
@@ -677,25 +679,32 @@ cell pp_sys_sbrk(cell x) {
 }
 #endif
 
-cell pp_sys_catch_errors(cell x) {
+cell pp_sys_catch_errors(void) {
+	cell x = parg(1);
+
 	Catch_errors = car(x) == TRUE;
 	if (Catch_errors) Last_errstr[0] = '\0';
 	return UNSPECIFIC;
 }
 
-cell pp_sys_chdir(cell x) {
+cell pp_sys_chdir(void) {
+	cell x = parg(1);
+
 	if (chdir(string(car(x))) < 0)
 		return sys_error("sys:chdir", x);
 	return sys_ok();
 }
 
-cell pp_sys_close(cell x) {
+cell pp_sys_close(void) {
+	cell x = parg(1);
+
 	if (close(integer_value("sys:close", car(x))) < 0)
 		return sys_error("sys:close", x);
 	return sys_ok();
 }
 
-cell pp_sys_convD2M(cell x) {
+cell pp_sys_convD2M(void) {
+	cell x = parg(1);
 	uchar	buf[8192+IOHDRSZ];
 	int	len = sys_convD2M(car(x), buf, sizeof buf);
 	cell	n;
@@ -707,7 +716,8 @@ cell pp_sys_convD2M(cell x) {
 	return n;
 }
 
-cell pp_sys_convM2D(cell x) {
+cell pp_sys_convM2D(void) {
+	cell x = parg(1);
 	uchar*	buf = (uchar*)string(car(x));
 	int	len = string_len(car(x));
 
@@ -717,7 +727,8 @@ cell pp_sys_convM2D(cell x) {
 	return sys_convM2D(buf, BIT16SZ + GBIT16(buf));
 }
 
-cell pp_sys_convS2M(cell x) {
+cell pp_sys_convS2M(void) {
+	cell x = parg(1);
 	uchar	buf[8192+IOHDRSZ];
 	int	len = sys_convS2M(car(x), buf, sizeof buf);
 
@@ -727,7 +738,8 @@ cell pp_sys_convS2M(cell x) {
 	return make_string((char*)buf, len);
 }
 
-cell pp_sys_convM2S(cell x) {
+cell pp_sys_convM2S(void) {
+	cell x = parg(1);
 	uchar*	buf = (uchar*)string(car(x));
 	int	len = string_len(car(x));
 
@@ -737,10 +749,11 @@ cell pp_sys_convM2S(cell x) {
 	return sys_convM2S(buf, BIT16SZ + GBIT16(buf));
 }
 
-cell pp_sys_userpasswd(cell x) {
+cell pp_sys_userpasswd(void) {
 	UserPasswd *up;
-	cell pass;
+	cell x, pass;
 
+	x = parg(1);
 	up = auth_getuserpasswd(auth_getkey, string(car(x)));
 	if(up == nil)
 		pass = cons(NIL, NIL);
@@ -753,10 +766,12 @@ cell pp_sys_userpasswd(cell x) {
 	return pass;
 }
 
-cell pp_sys_create(cell x) {
+cell pp_sys_create(void) {
+	cell x;
 	int	fd;
 	char	name[] = "sys:create";
 
+	x = parg(1);
 	fd = create(string(car(x)),
 		    integer_value(name, cadr(x)),
 		    integer_value(name, caddr(x)));
@@ -765,7 +780,8 @@ cell pp_sys_create(cell x) {
 	return make_long_integer(fd);
 }
 
-cell pp_sys_dirread(cell x) {
+cell pp_sys_dirread(void) {
+	cell	x = parg(1);
 	cell	r, a;
 	char	name[] = "sys:dirread";
 	int	fd = integer_value(name, car(x));
@@ -795,10 +811,12 @@ cell pp_sys_dirread(cell x) {
 	return r;
 }
 
-cell pp_sys_dup(cell x) {
+cell pp_sys_dup(void) {
+	cell x;
 	int	r;
 	char	name[] = "sys:dup";
 
+	x = parg(1);
 	r = dup(integer_value(name, car(x)),
 		integer_value(name, cadr(x)));
 	if (r < 0)
@@ -806,7 +824,8 @@ cell pp_sys_dup(cell x) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_errstr(cell x) {
+cell pp_sys_errstr(void) {
+	cell x = parg(1);
 	int	len;
 	char	*buf1 = string(car(x));
 	char	buf[ERRMAX];
@@ -818,11 +837,12 @@ cell pp_sys_errstr(cell x) {
 	return make_string(buf, len);
 }
 
-cell pp_sys_exec(cell x) {
+cell pp_sys_exec(void) {
 	char	**argv;
-	cell	p;
+	cell	x, p;
 	int	i;
 
+	x = parg(1);
 	for (p = cadr(x); p != NIL; p = cdr(p)) {
 		if (!pair_p(p))
 			error(
@@ -845,34 +865,40 @@ cell pp_sys_exec(cell x) {
 	return sys_error("sys:exec", x);
 }
 
-cell pp_sys_exit(cell x) {
-	USED(x);
+cell pp_sys_exit(void) {
 	exits(nil);
 	fatal("exits() failed");
 	return sys_ok();
 }
 
-cell pp_sys_exits(cell x) {
+cell pp_sys_exits(void) {
+	cell x = parg(1);
+
 	exits(string(car(x)));
 	fatal("exits() failed");
 	return sys_ok();
 }
 
-cell pp_sys_fauth(cell x) {
+cell pp_sys_fauth(void) {
+	cell x;
 	int	r;
 	char	name[] = "sys:fauth";
 
+	x = parg(1);
 	r = fauth(integer_value(name, car(x)), string(cadr(x)));
 	if (r < 0)
 		return sys_error(name, VOID);
 	return make_long_integer(r);
 }
 
-cell pp_sys_fd2path(cell x) {
+cell pp_sys_fd2path(void) {
+	cell x;
 	int	len;
 	char	name[] = "sys:fd->path";
 
 	cell buf = make_string("", 1024), buf2;
+
+	x = parg(1);
 	if (fd2path(integer_value(name, car(x)), string(buf), 1024))
 		return sys_error(name, x);
 	len = strlen(string(buf));
@@ -883,13 +909,15 @@ cell pp_sys_fd2path(cell x) {
 	return buf2;
 }
 
-cell pp_sys_flush(cell x) {
+cell pp_sys_flush(void) {
+	cell x = parg(1);
+
 	if (fflush(Ports[port_no(car(x))]))
 		return sys_error("sys:flush", x);
 	return sys_ok();
 }
 
-cell pp_sys_fork(cell) {
+cell pp_sys_fork(void) {
 	int	pid;
 
 	pid = fork();
@@ -898,7 +926,8 @@ cell pp_sys_fork(cell) {
 	return make_long_integer(pid);
 }
 
-cell pp_sys_fstat(cell x) {
+cell pp_sys_fstat(void) {
+	cell x = parg(1);
 	uchar	edir[STATSIZE];
 	char	name[]="sys:fstat";
 	int	len = fstat(integer_value(name, car(x)), edir, STATSIZE);
@@ -908,7 +937,8 @@ cell pp_sys_fstat(cell x) {
 	return make_string((char*)edir, len);
 }
 
-cell pp_sys_fwstat(cell x) {
+cell pp_sys_fwstat(void) {
+	cell	x = parg(1);
 	cell	fd = car(x);
 	cell	st = cadr(x);
 	int	r;
@@ -918,29 +948,32 @@ cell pp_sys_fwstat(cell x) {
 	return r < 0? FALSE : TRUE;
 }
 
-cell pp_sys_make_input_port(cell x) {
+cell pp_sys_make_input_port(void) {
 	int	in = new_port();
 
 	if (in < 0)
 		error("sys:make-input-port: out of ports", VOID);
 
-	Ports[in] = fdopen(integer_value("sys:make-input-port", car(x)),
+	Ports[in] = fdopen(integer_value("sys:make-input-port", parg(1)),
 				"r");
 	return make_port(in, T_INPUT_PORT);
 }
 
-cell pp_sys_make_output_port(cell x) {
+cell pp_sys_make_output_port(void) {
+	cell x;
 	int	out = new_port();
 
 	if (out < 0)
 		error("sys:make-output-port: out of ports", VOID);
 
+	x = parg(1);
 	Ports[out] = fdopen(integer_value("sys:make-output-port", car(x)),
 				"w");
 	return make_port(out, T_OUTPUT_PORT);
 }
 
-cell pp_sys_mount(cell x) {
+cell pp_sys_mount(void) {
+	cell	x = parg(1);
 	char	name[] = "sys:mount";
 	cell	y = cdddr(x);
 
@@ -955,16 +988,18 @@ cell pp_sys_mount(cell x) {
 		     string(cadr(y))) < 0 ? FALSE : TRUE;
 }
 
-cell pp_sys_open(cell x) {
+cell pp_sys_open(void) {
+	cell x;
 	int	fd;
 
+	x = parg(1);
 	fd = open(string(car(x)), integer_value("sys:open", cadr(x)));
 	if (fd < 0)
 		return sys_error("sys:open", x);
 	return make_long_integer(fd);
 }
 
-cell pp_sys_pipe(cell) {
+cell pp_sys_pipe(void) {
 	int	fd[2];
 	cell	n;
 
@@ -977,10 +1012,12 @@ cell pp_sys_pipe(cell) {
 	return n;
 }
 
-cell pp_sys_postnote(cell x) {
+cell pp_sys_postnote(void) {
+	cell	x;
 	char	name[] = "sys:postnote";
 	int	r;
 
+	x = parg(1);
 	r = postnote(integer_value(name, car(x)), 
 		     integer_value(name, cadr(x)),
 		     string(cadr(x)));
@@ -989,11 +1026,12 @@ cell pp_sys_postnote(cell x) {
 	return TRUE;
 }
 
-cell pp_sys_pread(cell x) {
-	cell	buf, buf2;
+cell pp_sys_pread(void) {
+	cell	x, buf, buf2;
 	int	r, k;
 	char	name[] = "sys:pread";
 
+	x = parg(1);
 	k = integer_value(name, cadr(x));
 	buf = make_string("", k);
 	r = pread(integer_value(name, car(x)), string(buf), k,
@@ -1010,10 +1048,12 @@ cell pp_sys_pread(cell x) {
 	return buf;
 }
 
-cell pp_sys_pwrite(cell x) {
+cell pp_sys_pwrite(void) {
+	cell x;
 	int	r;
 	char	name[] = "sys:pwrite";
 
+	x = parg(1);
 	r = pwrite(integer_value(name, car(x)), string(cadr(x)),
 		string_len(cadr(x))-1, int64_value(name, caddr(x)));
 	if (r < 0)
@@ -1021,12 +1061,13 @@ cell pp_sys_pwrite(cell x) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_read9pmsg(cell x) {
+cell pp_sys_read9pmsg(void) {
 	int fd, n;
 	uchar buf[8192+IOHDRSZ];
-	cell r;
+	cell x, r;
 	char name[] = "sys:read9pmsg";
 
+	x = parg(1);
 	fd = integer_value(name, car(x));
 	n = read9pmsg(fd, buf, sizeof buf);
 	if (n < 0)
@@ -1037,11 +1078,12 @@ cell pp_sys_read9pmsg(cell x) {
 	return r;
 }
 
-cell pp_sys_read(cell x) {
-	cell	buf, buf2;
+cell pp_sys_read(void) {
+	cell	x, buf, buf2;
 	int	r, k;
 	char	name[] = "sys:read";
 
+	x = parg(1);
 	k = integer_value(name, cadr(x));
 	buf = make_string("", k);
 	r = read(integer_value(name, car(x)), string(buf), k);
@@ -1063,34 +1105,42 @@ cell pp_sys_read(cell x) {
 	return buf;
 }
 
-cell pp_sys_rendezvous(cell x) {
+cell pp_sys_rendezvous(void) {
+	cell x;
 	char*	r;
 
+	x = parg(1);
 	r = rendezvous(symbol_name(car(x)), string(cadr(x)));
 	if (r == (char*)-1)
 		return sys_error("sys:rendezvous", x);
 	return make_string(r, strlen(r));
 }
 
-cell pp_sys_rfork(cell x) {
+cell pp_sys_rfork(void) {
+	cell x;
 	int	pid;
 
+	x = parg(1);
 	pid = rfork(integer_value("sys:rfork", car(x)));
 	if (pid < 0)
 		return sys_error("sys:rfork", VOID);
 	return make_long_integer(pid);
 }
 
-cell pp_sys_remove(cell x) {
+cell pp_sys_remove(void) {
+	cell x = parg(1);
+
 	if (remove(string(car(x))) < 0)
 		return sys_error("sys:remove", x);
 	return sys_ok();
 }
 
-cell pp_sys_seek(cell x) {
+cell pp_sys_seek(void) {
+	cell	x;
 	char	name[] = "sys:seek";
 	vlong	r;
 
+	x = parg(1);
 	r = seek(integer_value(name, car(x)),
 		int64_value(name, cadr(x)),
 		integer_value(name, caddr(x)));
@@ -1099,13 +1149,15 @@ cell pp_sys_seek(cell x) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_sleep(cell x) {
+cell pp_sys_sleep(void) {
+	cell x = parg(1);
 	if (sleep(integer_value("sys:sleep", car(x))))
 		return sys_error("sys:sleep", x);
 	return sys_ok();
 }
 
-cell pp_sys_stat(cell x) {
+cell pp_sys_stat(void) {
+	cell	x = parg(1);
 	uchar	edir[STATSIZE];
 	int	len = stat(string(car(x)), edir, STATSIZE);
 	cell	r;
@@ -1116,11 +1168,12 @@ cell pp_sys_stat(cell x) {
 	return r;
 }
 
-cell pp_sys_unmount(cell x) {
+cell pp_sys_unmount(void) {
+	cell x = parg(1);
 	return unmount(string(car(x)), string(cadr(x))) < 0? FALSE : TRUE;
 }
 
-cell pp_sys_wait(cell) {
+cell pp_sys_wait(void) {
 	cell	n;
 	char	buf[ERRMAX+40];
 	int	len =  await(buf, sizeof buf - 1);
@@ -1139,7 +1192,7 @@ cell pp_sys_wait(cell) {
 	return n;
 }
 
-cell pp_sys_waitpid(cell) {
+cell pp_sys_waitpid(void) {
 	char	buf[ERRMAX+40];
 	int	len =  await(buf, sizeof buf - 1);
 	char*	fld[5];
@@ -1150,9 +1203,11 @@ cell pp_sys_waitpid(cell) {
 	return make_long_integer(atoi(fld[0]));
 }
 
-cell pp_sys_write(cell x) {
+cell pp_sys_write(void) {
+	cell x;
 	int	r;
 
+	x = parg(1);
 	r = write(integer_value("sys:write", car(x)), string(cadr(x)),
 		string_len(cadr(x))-1);
 	if (r < 0)
@@ -1160,7 +1215,8 @@ cell pp_sys_write(cell x) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_wstat(cell x) {
+cell pp_sys_wstat(void) {
+	cell	x = parg(1);
 	uchar*	buf = (uchar*)string(cadr(x));
 	int	len = string_len(cadr(x));
 	int	r;
@@ -1169,7 +1225,7 @@ cell pp_sys_wstat(cell x) {
 	return r < 0? FALSE : TRUE;
 }
 
-cell pp_sys_command_line(cell) {
+cell pp_sys_command_line(void) {
 	extern cell	Argv;
 
 	return Argv;
@@ -1244,8 +1300,8 @@ static Magic_const magic_const[] = {
 	{0,0}
 };
 
-cell pp_sys_magic_const(cell x) {
-	char*		name = string(car(x));
+cell pp_sys_magic_const(void) {
+	char*	name = string(parg(1));
 	Magic_const	*k;
 
 	for (k = magic_const; k->name; k++)
@@ -1254,31 +1310,7 @@ cell pp_sys_magic_const(cell x) {
 	return FALSE;
 }
 
-int system(const char* cmd) {
-	int result = 0;
-	Waitmsg *wmsg;
-
-	switch(fork()) {
-	case -1:
-			return -1;
-	case 0:
-		close(0);
-		close(2);
-		execl("/bin/rc", "-c", cmd, NULL);
-		exits(nil);
-	default:
-		wmsg = wait();
-		if (strlen(wmsg->msg) > 0) {
-			result = -1;
-			memcpy(Last_errstr, wmsg->msg, sizeof(Last_errstr));
-		}
-		free(wmsg);
-	}
-
-	return result;
-}
-
-cell pp_sys_err(cell x) {
+cell pp_sys_err(void) {
 	return make_string(Last_errstr, strlen(Last_errstr));
 }
 

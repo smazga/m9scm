@@ -33,7 +33,7 @@ libtest:V: $S9FES test.image
 %test:V: $S9FES test.image util/%test.scm
 	$S9FES -i test -f util/$target.scm
 
-test.image: $BIN/$TARG s9.scm
+test.image: $S9FES s9.scm
 	$S9FES -i - -d $target
 
 install:V: $S9FES s9.image
