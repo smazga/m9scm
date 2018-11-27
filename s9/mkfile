@@ -7,9 +7,9 @@ S9FES_LIBRARY_PATH=
 BIN=		/$objtype/bin
 TARG=		s9fes
 S9FES=		$BIN/$TARG
-OFILES=		s9.$O s9core.$O plan9.$O s9-ffi.$O
+OFILES=		s9.$O s9core.$O plan9.$O s9-ffi.$O nuklear.$O
 CLEANFILES=	s9.image test.image s9fes
-CFLAGS=		$CFLAGS -Dplan9 '-DEXTENSIONS=sys_init();'
+CFLAGS=		$CFLAGS -Dplan9 '-DEXTENSIONS=sys_init();nk_ext_init();'
 EXTRASCM=	-l ext/sys-plan9/plan9.scm -l ext/sys-plan9/plan9-tools.scm
 
 s9dir=		/lib/s9fes
@@ -20,6 +20,9 @@ tests:V: test realtest srtest libtest
 
 s9.image:	$S9FES s9.scm config.scm
 	$S9FES -i - -l config.scm $EXTRASCM -d $target
+
+nuklear.$O: ext/nuklear/nuklear.c
+	$CC $CFLAGS -p -I `{pwd} ext/nuklear/nuklear.c
 
 plan9.$O: ext/sys-plan9/plan9.c
 	$CC $CFLAGS -p -I `{pwd} ext/sys-plan9/plan9.c
@@ -43,6 +46,7 @@ install:V: $S9FES s9.image
 	cp s9.scm $s9dir/s9fes.scm
 	cp lib/* $s9dir/lib
 	cp ext/sys-plan9/*.scm $s9dir/ext
+	cp ext/nuklear/*.scm $s9dir/ext
 	cp contrib/* $s9dir/contrib
 	{ x = `{pwd}; tar c help | { cd $s9dir; tar x }; cd $x }
 	cp util/s9.rc /rc/bin/s9
