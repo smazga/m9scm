@@ -5418,7 +5418,7 @@ void keyboard_quit(int sig) {
 #endif /* unix */
 
 #ifdef plan9
- void keyboard_interrupt(void *dummy, char *note) {
+ void keyboard_interrupt(void *, char *note) {
 	if (strstr(note, "interrupt") == NULL)
 		noted(NDFLT);
 	reset_std_ports();
