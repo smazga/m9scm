@@ -6,6 +6,12 @@
  * Interface for extension procedures.
  */
 
+extern cell	Rts;
+extern int	Sp;
+
+#define parg(n)	car(vector(*GC_stack)[*GC_stkptr-(n)])
+#define narg()	fixval(vector(*GC_stack)[*GC_stkptr])
+
 #define BOL T_BOOLEAN  
 #define CHR T_CHAR     
 #define INP T_INPUT_PORT
@@ -25,7 +31,7 @@ void error(char *msg, cell expr);
 cell integer_value(char *src, cell x);
 
 extern cell xsread(char *s);
-extern cell eval(cell x);
+extern cell eval(cell x, int r);
 
 struct Sys_const {
 	char*	name;

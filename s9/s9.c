@@ -6,9 +6,9 @@
  * https://creativecommons.org/share-your-work/public-domain/cc0/
  */
 
-#define RELEASE_DATE	"2018-10-26"
+#define RELEASE_DATE	"2018-11-24"
 #define PATCHLEVEL	1
-#define MARS "Martian Edition 0010"
+#define MARS "Martian Edition 0014"
 
 #include "s9core.h"
 #include "s9import.h"
@@ -23,7 +23,6 @@
 #ifdef plan9
  #define handle_sigquit()
  #define handle_sigint()        notify(keyboard_interrupt)
- int system(const char*);
 #endif
 
 #define IMAGE_FILE	"s9.image"
@@ -125,6 +124,7 @@ volatile int	Expand_level = 0;
 char	S9magic[17];
 
 int	O_quiet = 0;
+int	Report_to_stderr = 0;
 
 cell	*Image_vars[] = { &Glob, &Hash, &Macros, NULL };
 
@@ -186,14 +186,14 @@ cell	P_abs, P_append, P_assq, P_assv, P_bit_op, P_boolean_p,
 	P_open_output_file, P_output_port_p, P_pair_p,
 	P_peek_char, P_plus, P_positive_p, P_procedure_p,
 	P_quit, P_quotient, P_read, P_read_char, P_real_p,
-	P_remainder, P_reverse, P_reverse_b, P_set_car_b,
-	P_set_cdr_b, P_set_input_port_b, P_set_output_port_b,
-	P_stats, P_string_append, P_string_ci_equal,
-	P_string_ci_grtr, P_string_ci_gteq, P_string_ci_less,
-	P_string_ci_lteq, P_string_copy, P_string_equal,
-	P_string_fill_b, P_string_grtr, P_string_gteq,
-	P_string_length, P_string_less, P_string_lteq,
-	P_string_p, P_string_ref, P_string_set_b,
+	P_remainder, P_reverse, P_reverse_b, P_s9_bytecode,
+	P_set_car_b, P_set_cdr_b, P_set_input_port_b,
+	P_set_output_port_b, P_stats, P_string_append,
+	P_string_ci_equal, P_string_ci_grtr, P_string_ci_gteq,
+	P_string_ci_less, P_string_ci_lteq, P_string_copy,
+	P_string_equal, P_string_fill_b, P_string_grtr,
+	P_string_gteq, P_string_length, P_string_less,
+	P_string_lteq, P_string_p, P_string_ref, P_string_set_b,
 	P_string_to_list, P_string_to_symbol, P_substring,
 	P_symbol_p, P_symbol_p, P_symbol_to_string, P_symbols,
 	P_system_command, P_throw, P_times, P_truncate,
@@ -208,61 +208,61 @@ cell	P_abs, P_append, P_assq, P_assv, P_bit_op, P_boolean_p,
 
 enum	{ OP_APPLIS, OP_APPLY, OP_ARG, OP_COPY_ARG, OP_CLOSURE,
 	  OP_COPY_REF, OP_DEF_MACRO, OP_ENTER, OP_ENTER_COLL,
-	  OP_HALT, OP_JMP, OP_JMP_FALSE, OP_JMP_TRUE, OP_MAKE_ENV,
-	  OP_PROP_ENV, OP_POP, OP_PUSH, OP_PUSH_VAL, OP_REF,
-	  OP_RETURN, OP_SET_ARG, OP_SET_REF, OP_TAIL_APPLIS,
-	  OP_TAIL_APPLY,
+	  OP_HALT, OP_JMP, OP_JMP_FALSE, OP_JMP_TRUE,
+	  OP_MAKE_ENV, OP_PROP_ENV, OP_POP, OP_PUSH,
+	  OP_PUSH_VAL, OP_QUOTE, OP_REF, OP_RETURN, OP_SET_ARG,
+	  OP_SET_REF, OP_TAIL_APPLIS, OP_TAIL_APPLY,
 
-	  OP_ABS, OP_APPEND, OP_ARGV, OP_ASSQ, OP_ASSV,
-	  OP_BIT_OP, OP_BOOLEAN_P, OP_CAAAAR, OP_CAAADR,
-	  OP_CAAAR, OP_CAADAR, OP_CAADDR, OP_CAADR, OP_CAAR,
-	  OP_CADAAR, OP_CADADR, OP_CADAR, OP_CADDAR, OP_CADDDR,
-	  OP_CADDR, OP_CADR, OP_CALL_CC, OP_CAR, OP_CATCH,
-	  OP_CATCH_TAG_P, OP_CDAAAR, OP_CDAADR, OP_CDAAR,
-	  OP_CDADAR, OP_CDADDR, OP_CDADR, OP_CDAR, OP_CDDAAR,
-	  OP_CDDADR, OP_CDDAR, OP_CDDDAR, OP_CDDDDR, OP_CDDDR,
-	  OP_CDDR, OP_CDR, OP_CEILING, OP_CHAR_ALPHABETIC_P,
-	  OP_CHAR_CI_EQUAL_P, OP_CHAR_CI_GRTR_P,
-	  OP_CHAR_CI_GTEQ_P, OP_CHAR_CI_LESS_P,
-	  OP_CHAR_CI_LTEQ_P, OP_CHAR_DOWNCASE, OP_CHAR_EQUAL_P,
-	  OP_CHAR_GRTR_P, OP_CHAR_GTEQ_P, OP_CHAR_LESS_P,
-	  OP_CHAR_LOWER_CASE_P, OP_CHAR_LTEQ_P,
-	  OP_CHAR_NUMERIC_P, OP_CHAR_P, OP_CHAR_TO_INTEGER,
-	  OP_CHAR_UPCASE, OP_CHAR_UPPER_CASE_P,
-	  OP_CHAR_WHITESPACE_P, OP_CLOSE_INPUT_PORT,
-	  OP_CLOSE_OUTPUT_PORT, OP_COMMAND_LINE, OP_CONS,
-	  OP_CURRENT_ERROR_PORT, OP_CURRENT_INPUT_PORT,
-	  OP_CURRENT_OUTPUT_PORT, OP_DELETE_FILE, OP_DISPLAY,
-	  OP_DIVIDE, OP_DUMP_IMAGE, OP_ENVIRONMENT_VARIABLE,
-	  OP_EOF_OBJECT_P, OP_EQUAL, OP_EQV_P, OP_EQ_P,
-	  OP_ERROR, OP_ERROR2, OP_EVAL, OP_EVEN_P, OP_EXACT_P,
-	  OP_EXACT_TO_INEXACT, OP_EXPONENT, OP_EXPT,
-	  OP_FILE_EXISTS_P, OP_FIX_EXACTNESS, OP_FLOOR,
-	  OP_GENSYM, OP_GRTR, OP_GTEQ, OP_INEXACT_P,
-	  OP_INEXACT_TO_EXACT, OP_INPUT_PORT_P, OP_INTEGER_P,
-	  OP_INTEGER_TO_CHAR, OP_LENGTH, OP_LESS, OP_LIST,
-	  OP_LIST_REF, OP_LIST_TAIL, OP_LIST_TO_STRING,
-	  OP_LIST_TO_VECTOR, OP_LOAD, OP_LTEQ, OP_MACRO_EXPAND,
-	  OP_MACRO_EXPAND_1, OP_MAKE_STRING, OP_MAKE_VECTOR,
-	  OP_MANTISSA, OP_MAX, OP_MEMQ, OP_MEMV, OP_MIN,
-	  OP_MINUS, OP_NEGATE, OP_NEGATIVE_P, OP_NOT, OP_NULL_P,
-	  OP_ODD_P, OP_OPEN_APPEND_FILE, OP_OPEN_INPUT_FILE,
+	  OP_ABS, OP_APPEND, OP_ASSQ, OP_ASSV, OP_BIT_OP,
+	  OP_BOOLEAN_P, OP_CAAAAR, OP_CAAADR, OP_CAAAR,
+	  OP_CAADAR, OP_CAADDR, OP_CAADR, OP_CAAR, OP_CADAAR,
+	  OP_CADADR, OP_CADAR, OP_CADDAR, OP_CADDDR, OP_CADDR,
+	  OP_CADR, OP_CALL_CC, OP_CAR, OP_CATCH, OP_CATCH_TAG_P,
+	  OP_CDAAAR, OP_CDAADR, OP_CDAAR, OP_CDADAR, OP_CDADDR,
+	  OP_CDADR, OP_CDAR, OP_CDDAAR, OP_CDDADR, OP_CDDAR,
+	  OP_CDDDAR, OP_CDDDDR, OP_CDDDR, OP_CDDR, OP_CDR,
+	  OP_CEILING, OP_CHAR_ALPHABETIC_P, OP_CHAR_CI_EQUAL_P,
+	  OP_CHAR_CI_GRTR_P, OP_CHAR_CI_GTEQ_P,
+	  OP_CHAR_CI_LESS_P, OP_CHAR_CI_LTEQ_P,
+	  OP_CHAR_DOWNCASE, OP_CHAR_EQUAL_P, OP_CHAR_GRTR_P,
+	  OP_CHAR_GTEQ_P, OP_CHAR_LESS_P, OP_CHAR_LOWER_CASE_P,
+	  OP_CHAR_LTEQ_P, OP_CHAR_NUMERIC_P, OP_CHAR_P,
+	  OP_CHAR_TO_INTEGER, OP_CHAR_UPCASE,
+	  OP_CHAR_UPPER_CASE_P, OP_CHAR_WHITESPACE_P,
+	  OP_CLOSE_INPUT_PORT, OP_CLOSE_OUTPUT_PORT,
+	  OP_COMMAND_LINE, OP_CONS, OP_CURRENT_ERROR_PORT,
+	  OP_CURRENT_INPUT_PORT, OP_CURRENT_OUTPUT_PORT,
+	  OP_DELETE_FILE, OP_DISPLAY, OP_DIVIDE, OP_DUMP_IMAGE,
+	  OP_ENVIRONMENT_VARIABLE, OP_EOF_OBJECT_P, OP_EQUAL,
+	  OP_EQV_P, OP_EQ_P, OP_ERROR, OP_ERROR2, OP_EVAL,
+	  OP_EVEN_P, OP_EXACT_P, OP_EXACT_TO_INEXACT,
+	  OP_EXPONENT, OP_EXPT, OP_FILE_EXISTS_P,
+	  OP_FIX_EXACTNESS, OP_FLOOR, OP_GENSYM, OP_GRTR,
+	  OP_GTEQ, OP_INEXACT_P, OP_INEXACT_TO_EXACT,
+	  OP_INPUT_PORT_P, OP_INTEGER_P, OP_INTEGER_TO_CHAR,
+	  OP_LENGTH, OP_LESS, OP_LIST, OP_LIST_REF,
+	  OP_LIST_TAIL, OP_LIST_TO_STRING, OP_LIST_TO_VECTOR,
+	  OP_LOAD, OP_LTEQ, OP_MACRO_EXPAND, OP_MACRO_EXPAND_1,
+	  OP_MAKE_STRING, OP_MAKE_VECTOR, OP_MANTISSA, OP_MAX,
+	  OP_MEMQ, OP_MEMV, OP_MIN, OP_MINUS, OP_NEGATE,
+	  OP_NEGATIVE_P, OP_NOT, OP_NULL_P, OP_ODD_P,
+	  OP_OPEN_APPEND_FILE, OP_OPEN_INPUT_FILE,
 	  OP_OPEN_OUTPUT_FILE, OP_OUTPUT_PORT_P, OP_PAIR_P,
 	  OP_PEEK_CHAR, OP_PLUS, OP_POSITIVE_P, OP_PROCEDURE_P,
-	  OP_QUIT, OP_QUOTE, OP_QUOTIENT, OP_READ, OP_READ_CHAR,
+	  OP_QUIT, OP_QUOTIENT, OP_READ, OP_READ_CHAR,
 	  OP_REAL_P, OP_REMAINDER, OP_REVERSE, OP_REVERSE_B,
-	  OP_SET_CAR_B, OP_SET_CDR_B, OP_SET_INPUT_PORT_B,
-	  OP_SET_OUTPUT_PORT_B, OP_STATS, OP_STRING_APPEND,
-	  OP_STRING_COPY, OP_STRING_EQUAL_P, OP_STRING_FILL_B,
-	  OP_STRING_GRTR_P, OP_STRING_GTEQ_P, OP_STRING_LENGTH,
-	  OP_STRING_LESS_P, OP_STRING_LTEQ_P, OP_STRING_P,
-	  OP_STRING_REF, OP_STRING_SET_B, OP_STRING_SI_EQUAL_P,
-	  OP_STRING_SI_GRTR_P, OP_STRING_SI_GTEQ_P,
-	  OP_STRING_SI_LESS_P, OP_STRING_SI_LTEQ_P,
-	  OP_STRING_TO_LIST, OP_STRING_TO_SYMBOL, OP_SUBSTRING,
-	  OP_SYMBOLS, OP_SYMBOL_P, OP_SYMBOL_TO_STRING,
-	  OP_SYSTEM_COMMAND, OP_THROW, OP_TIMES, OP_TRUNCATE,
-	  OP_UNQUOTE, OP_UNQUOTE_SPLICING, OP_VECTOR,
+	  OP_S9_BYTECODE, OP_SET_CAR_B, OP_SET_CDR_B,
+	  OP_SET_INPUT_PORT_B, OP_SET_OUTPUT_PORT_B, OP_STATS,
+	  OP_STRING_APPEND, OP_STRING_COPY, OP_STRING_EQUAL_P,
+	  OP_STRING_FILL_B, OP_STRING_GRTR_P, OP_STRING_GTEQ_P,
+	  OP_STRING_LENGTH, OP_STRING_LESS_P, OP_STRING_LTEQ_P,
+	  OP_STRING_P, OP_STRING_REF, OP_STRING_SET_B,
+	  OP_STRING_CI_EQUAL_P, OP_STRING_CI_GRTR_P,
+	  OP_STRING_CI_GTEQ_P, OP_STRING_CI_LESS_P,
+	  OP_STRING_CI_LTEQ_P, OP_STRING_TO_LIST,
+	  OP_STRING_TO_SYMBOL, OP_SUBSTRING, OP_SYMBOLS,
+	  OP_SYMBOL_P, OP_SYMBOL_TO_STRING, OP_SYSTEM_COMMAND,
+	  OP_THROW, OP_TIMES, OP_TRUNCATE, OP_VECTOR,
 	  OP_VECTOR_APPEND, OP_VECTOR_COPY, OP_VECTOR_FILL_B,
 	  OP_VECTOR_LENGTH, OP_VECTOR_P, OP_VECTOR_REF,
 	  OP_VECTOR_SET_B, OP_VECTOR_TO_LIST, OP_WRITE,
@@ -276,8 +276,7 @@ enum	{ OP_APPLIS, OP_APPLY, OP_ARG, OP_COPY_ARG, OP_CLOSURE,
 #define RBRACK	(USER_SPECIALS-2)
 #define DOT	(USER_SPECIALS-3)
 
-#define T_FIXNUM	(USER_SPECIALS-100)
-#define T_CATCH_TAG	(USER_SPECIALS-101)
+#define T_CATCH_TAG	(USER_SPECIALS-100)
 
 /*
  * Extension setup, add your own ones here
@@ -311,7 +310,7 @@ void rerror(char *s, cell x) {
 	Error_handler = getbind(S_error_tag);
 	if (Error_handler != NIL) longjmp(Error_tag, 1);
 	s9_abort();
-	o = set_output_port(O_quiet? 2: 1);
+	o = set_output_port(Report_to_stderr? 2: 1);
 	prints("*** error: ");
 	prints(s);
 	if (x != UNDEFINED) {
@@ -357,18 +356,6 @@ void expect(char *who, char *what, cell got) {
 /*
  * Type implementations
  */
-
-cell mkfix(int v) {
-	cell	n;
-
-	n = new_atom(v, NIL);
-	return new_atom(T_FIXNUM, n);
-}
-
-#define fix_p(n) \
-        (!s9_special_p(n) && (tag(n) & S9_ATOM_TAG) && T_FIXNUM == car(n))
-
-#define fixval(x) cadr(x)
 
 cell closure(cell i, cell e) {
 	cell	c;
@@ -750,25 +737,6 @@ cell subvector(cell x, int k0, int k1) {
 	return n;
 }
 
-cell argument_vector(char **argv) {
-	int	i;
-	cell	a, n;
-
-	if (NULL == argv[0]) return NIL;
-	a = cons(NIL, NIL);
-	save(a);
-	for (i = 0; argv[i] != NULL; i++) {
-		n = make_string(argv[i], strlen(argv[i]));
-		car(a) = n;
-		if (argv[i+1] != NULL) {
-			n = cons(NIL, NIL);
-			cdr(a) = n;
-			a = cdr(a);
-		}
-	}
-	return unsave(1);
-}
-
 cell list_to_vector(cell m, char *msg, int flags) {
 	cell	n, vec;
 	int	k;
@@ -947,7 +915,7 @@ void add_primitives(char *name, S9_PRIM *p) {
 	Glob = nconc(Glob, b);
 }
 
-cell eval(cell x);
+cell eval(cell x, int r);
 
 void init_extensions(void) {
 	cell	n, p;
@@ -963,13 +931,13 @@ void init_extensions(void) {
 		p = assq(p, Glob);
 		if (FALSE == p) continue;
 		p = cons(cadr(p), NIL);
-		eval(p);
+		eval(p, 1);
 	}
 	p = symbol_ref("s9:s9");
 	p = assq(p, Glob);
 	if (FALSE == p) return;
 	p = cons(cadr(p), NIL);
-	eval(p);
+	eval(p, 1);
 }
 
 void init_rts(void) {
@@ -985,6 +953,7 @@ void init(void) {
 	init_rts();
 	image_vars(Image_vars);
 	exponent_chars("eEdDfFlLsS");
+	memset(S9magic, 0, sizeof(S9magic));
 	if (strlen(RELEASE_DATE) == 10)
 		sprintf(S9magic, "S9:%s:%c", RELEASE_DATE, PATCHLEVEL+'0');
 	else
@@ -1158,6 +1127,7 @@ void init(void) {
 	P_remainder = symbol_ref("remainder");
 	P_reverse = symbol_ref("reverse");
 	P_reverse_b = symbol_ref("reverse!");
+	P_s9_bytecode = symbol_ref("s9:bytecode");
 	P_set_car_b = symbol_ref("set-car!");
 	P_set_cdr_b = symbol_ref("set-cdr!");
 	P_set_input_port_b = symbol_ref("set-input-port!");
@@ -1233,6 +1203,7 @@ void load_initial_image(char *image) {
 
 	if (setjmp(Restart) != 0)
 		fatal("could not load S9 image or library");
+	Report_to_stderr = 1;
 	imgdir = getenv("S9FES_IMAGE_DIR");
 	if (NULL == imgdir) imgdir = IMAGE_DIR;
 	if ('.' == *image || '/' == *image) {
@@ -1249,15 +1220,19 @@ void load_initial_image(char *image) {
 	}
 	else if (exists_p(path) != FALSE) {
 		s = load_image(path, S9magic);
-		if (s != NULL)
+		if (s != NULL) {
 			error(s, make_string(path, strlen(path)));
+			fatal("aborting");
+		}
 		setbind(S_image_file,
 			make_string(path, strlen(path)));
 	}
 	else if (exists_p(IMAGE_FILE) != FALSE) {
 		s = load_image(IMAGE_FILE, S9magic);
-		if (s != NULL)
+		if (s != NULL) {
 			error(s, make_string(path, strlen(path)));
+			fatal("aborting");
+		}
 		setbind(S_image_file,
 			make_string(IMAGE_FILE, strlen(IMAGE_FILE)));
 	}
@@ -1265,6 +1240,7 @@ void load_initial_image(char *image) {
 		error("cannot open image file",
 			make_string(path, strlen(path)));
 	}
+	Report_to_stderr = 0;
 }
 
 /*
@@ -1954,6 +1930,10 @@ void x_print_form(cell n, int depth) {
 		error("printer: too many nested lists or vectors", UNDEFINED);
 		return;
 	}
+	if (Intr) {
+		Intr = 0;
+		error("interrupted", UNDEFINED);
+	}
 	if (NIL == n) {
 		prints("()");
 	}
@@ -2196,7 +2176,7 @@ cell free_vars(cell x, cell e) {
 		x = cdr(x);
 	}
 	n = unsave(1);
-	if (lam) e = unsave(3);
+	if (lam) unsave(3);
 	return n;
 }
 
@@ -2635,6 +2615,7 @@ int subr1p(cell x) {
 	if (x == P_real_p)		return OP_REAL_P;
 	if (x == P_reverse)		return OP_REVERSE;
 	if (x == P_reverse_b)		return OP_REVERSE_B;
+	if (x == P_s9_bytecode)		return OP_S9_BYTECODE;
 	if (x == P_set_input_port_b)	return OP_SET_INPUT_PORT_B;
 	if (x == P_set_output_port_b)	return OP_SET_OUTPUT_PORT_B;
 	if (x == P_stats)		return OP_STATS;
@@ -2739,11 +2720,11 @@ int lsubr2p(cell x) {
 	if (x == P_gteq)		return OP_GTEQ;
 	if (x == P_less)		return OP_LESS;
 	if (x == P_lteq)		return OP_LTEQ;
-	if (x == P_string_ci_equal)	return OP_STRING_SI_EQUAL_P;
-	if (x == P_string_ci_grtr)	return OP_STRING_SI_GRTR_P;
-	if (x == P_string_ci_gteq)	return OP_STRING_SI_GTEQ_P;
-	if (x == P_string_ci_less)	return OP_STRING_SI_LESS_P;
-	if (x == P_string_ci_lteq)	return OP_STRING_SI_LTEQ_P;
+	if (x == P_string_ci_equal)	return OP_STRING_CI_EQUAL_P;
+	if (x == P_string_ci_grtr)	return OP_STRING_CI_GRTR_P;
+	if (x == P_string_ci_gteq)	return OP_STRING_CI_GTEQ_P;
+	if (x == P_string_ci_less)	return OP_STRING_CI_LESS_P;
+	if (x == P_string_ci_lteq)	return OP_STRING_CI_LTEQ_P;
 	if (x == P_string_equal)	return OP_STRING_EQUAL_P;
 	if (x == P_string_grtr)		return OP_STRING_GRTR_P;
 	if (x == P_string_gteq)		return OP_STRING_GTEQ_P;
@@ -3015,7 +2996,24 @@ void complsubr0(cell x, int op) {
 		}
 	}
 	else if (NIL == cddr(x)) {
+		/*
+		 * should catch wrong type
+		 */
 		compexpr(cadr(x), 0);
+	}
+	else if (OP_STRING_APPEND == op || OP_VECTOR_APPEND == op) {
+		x = cdr(x);
+		x = reverse(x);
+		save(x);
+		emitq(NIL);
+		while (x != NIL) {
+			emitop(OP_PUSH);
+			compexpr(car(x), 0);
+			emitop(OP_CONS);
+			x = cdr(x);
+		}
+		unsave(1);
+		emitop(op);
 	}
 	else {
 		x = cdr(x);
@@ -3297,7 +3295,7 @@ cell expand(cell x, int all) {
 		n = cons(n, NIL);
 		n = cons(cdr(m), n);
 		n = cons(S_apply, n);
-		n = eval(n);
+		n = eval(n, 1);
 		if (all) {
 			save(n);
 			n = expand(n, all);
@@ -3363,20 +3361,22 @@ void push(cell x) {
 /* Opcodes */
 
 cell apply_extproc(cell pfn) {
-	cell	a, x;
+	cell	x, a;
 	int	i, k;
 	char	*s;
 
-	save(a = NIL);
 	k = fixval(stackref(Sp));
-	for (i = k; i > 0; i--) {
-		a = cons(car(stackref(Sp-i)), a);
-		car(Stack) = a;
+	s = typecheck(pfn);
+	if (s != NULL) {
+		save(a = NIL);
+		for (i = k; i > 0; i--) {
+			a = cons(car(stackref(Sp-i)), a);
+			car(Stack) = a;
+		}
+		unsave(1);
+		error(s, a);
 	}
-	s = typecheck(pfn, a);
-	if (s != NULL) error(s, a);
-	x = apply_prim(pfn, a);
-	unsave(1);
+	x = apply_prim(pfn);
 	Sp -= k+1;
 	return x;
 }
@@ -3393,7 +3393,6 @@ int apply(int tail) {
 		if (continuation_p(Acc)) {
 			return call_cont(Acc, arg(1));
 		}
-printf("%d ", Ip); print_form(Prog); nl();
 		error("application of non-function", Acc);
 	}
 	if (tail) {
@@ -3528,12 +3527,12 @@ cell integer_value(char *who, cell x) {
 		error(msg, x);
 		return 0;
 	}
-	if (cddr(x) != NIL) {
+	if (!small_int_p(x)) {
 		sprintf(msg, "%s: integer argument too big", who);
 		error(msg, x);
 		return 0;
 	}
-	return cadr(x);
+	return small_int_value(x);
 }
 
 cell integer_argument(char *who, cell x) {
@@ -3598,6 +3597,7 @@ cell append(cell a, cell b) {
 	if (NIL == a) return b;
 	if (NIL == b) return a;
 	save(n = cons(NIL, NIL));
+	pn = n; /*LINT*/
 	for (p = a; pair_p(p); p = cdr(p)) {
 		car(n) = car(p);
 		pn = n;
@@ -3760,6 +3760,7 @@ cell mul(cell x, cell y) {
 cell xdiv(cell x, cell y) {
 	if (!number_p(x)) expect("/", "number", x);
 	if (!number_p(y)) expect("/", "number", y);
+	if (real_zero_p(x)) error("/: divide by zero", UNDEFINED);
 	return real_divide(y, x);
 }
 
@@ -4042,17 +4043,25 @@ void sfill(cell a, cell n) {
 	for (i=0; i<k; i++) s[i] = c;
 }
 
-cell sconc(cell a, cell b) {
-	cell	n;
-	int	ka, kb;
+cell sconc(cell x) {
+	cell	p, n;
+	int	k, m;
+	char	*s;
 
-	if (!string_p(a)) expect("string-append", "string", a);
-	if (!string_p(b)) expect("string-append", "string", b);
-	ka = string_len(a)-1;
-	kb = string_len(b)-1;
-	n = make_string("", ka+kb);
-	memcpy(string(n), string(a), ka);
-	memcpy(&string(n)[ka], string(b), kb+1);
+	k = 0;
+	for (p = x; p != NIL; p = cdr(p)) {
+		if (!string_p(car(p)))
+			expect("string-append", "string", car(p));
+		k += string_len(car(p))-1;
+	}
+	n = make_string("", k);
+	s = string(n);
+	k = 0;
+	for (p = x; p != NIL; p = cdr(p)) {
+		m = string_len(car(p));
+		memcpy(&s[k], string(car(p)), m);
+		k += string_len(car(p))-1;
+	}
 	return n;
 }
 
@@ -4074,24 +4083,30 @@ cell vref(cell s, cell n) {
 	if (!vector_p(s)) expect("vector-ref", "vector", s);
 	i = integer_value("vector-ref", n);
 	if (i < 0 || i >= vector_len(s))
-		error("vextor-ref: index out of range", n);
+		error("vector-ref: index out of range", n);
 	return vector(s)[i];
 }
 
-cell vconc(cell a, cell b) {
-	cell	n, *va, *vb, *vn;
-	int	ka, kb, i;
+cell vconc(cell x) {
+	cell	n, p, *ov, *nv;
+	int	i, j, k, total;
 
-	if (!vector_p(a)) expect("vector-append", "vector", a);
-	if (!vector_p(b)) expect("vector-append", "vector", b);
-	ka = vector_len(a);
-	kb = vector_len(b);
-	n = make_vector(ka+kb);
-	va = vector(a);
-	vb = vector(b);
-	vn = vector(n);
-	for (i=0; i<ka; i++) vn[i] = va[i];
-	for (i=0; i<kb; i++) vn[i+ka] = vb[i];
+	total = 0;
+	for (p = x; p != NIL; p = cdr(p)) {
+		if (vector_p(car(p)))
+			total += vector_len(car(p));
+		else
+			expect("vector-append", "vector", car(p));
+	}
+	n = new_vec(T_VECTOR, total * sizeof(cell));;
+	nv = vector(n);
+	j = 0;
+	for (p = x; p != NIL; p = cdr(p)) {
+		ov = vector(car(p));
+		k = vector_len(car(p));
+		for (i = 0; i < k; i++)
+			nv[j++] = ov[i];
+	}
 	return n;
 }
 
@@ -4173,10 +4188,9 @@ cell readchar(cell p, int rej) {
 	return make_char(c);
 }
 
-cell read_obj(cell p, int rej) {
+cell read_obj(cell p) {
 	int	pp;
 	cell	n;
-	USED(rej);
 
 	pp = input_port();
 	if (p != pp) set_input_port(p);
@@ -4224,6 +4238,9 @@ void dump_image_file(cell s) {
 	setbind(S_image_file, s);
 }
 
+void begin_rec(void);
+void end_rec(void);
+
 void loadfile(char *s) {
 	int	ldport, rdport;
 	cell	x, ld;
@@ -4242,13 +4259,15 @@ void loadfile(char *s) {
 	save(make_string(Srcfile, strlen(Srcfile)));
 	strncpy(Srcfile, s, TOKEN_LENGTH);
 	Srcfile[TOKEN_LENGTH] = 0;
+	begin_rec();
 	for (;;) {
 		set_input_port(ldport);
 		x = xread();
 		set_input_port(rdport);
 		if (END_OF_FILE == x) break;
-		eval(x);
+		eval(x, 0);
 	}
+	end_rec();
 	strcpy(Srcfile, string(unsave(1)));
 	Line_no = oline;
 	setbind(S_loading, ld);
@@ -4271,7 +4290,7 @@ cell stats(cell x) {
 
 	gcv();
 	Stats = 1;
-	x = eval(x);
+	x = eval(x, 1);
 	Stats = 0;
 	save(x);
 	get_counters(&ncs, &ccs, &vcs, &gcs);
@@ -4290,6 +4309,20 @@ cell getenvvar(char *s) {
 	p = getenv(s);
 	if (NULL == p) return FALSE;
 	return make_string(p, strlen(p));
+}
+
+cell cvt_bytecode(cell x) {
+	cell	b, *v;
+	int	i, k;
+
+	k = vector_len(x);
+	b = subvector(x, 0, k);
+	v = vector(b);
+	for (i=0; i<k; i++) {
+		if (fix_p(v[i]))
+			car(v[i]) = T_INTEGER;
+	}
+	return b;
 }
 
 /* Main interpreter loop */
@@ -4672,7 +4705,7 @@ void run(cell x) {
 		skip(1);
 		break;
 	case OP_EVAL:
-		Acc = eval(Acc);
+		Acc = eval(Acc, 1);
 		skip(1);
 		break;
 	case OP_EVEN_P:
@@ -4740,7 +4773,9 @@ void run(cell x) {
 		skip(1);
 		break;
 	case OP_PROCEDURE_P:
-		Acc = function_p(Acc) || continuation_p(Acc)? TRUE: FALSE;
+		Acc = function_p(Acc) ||
+		      continuation_p(Acc) ||
+		      primitive_p(Acc)? TRUE: FALSE;
 		skip(1);
 		break;
 	case OP_INPUT_PORT_P:
@@ -4830,7 +4865,7 @@ void run(cell x) {
 		break;
 	case OP_READ:
 		if (!input_port_p(Acc)) expect("read", "input port", Acc);
-		Acc = read_obj(port_no(Acc), 0);
+		Acc = read_obj(port_no(Acc));
 		skip(1);
 		break;
 	case OP_READ_CHAR:
@@ -4849,7 +4884,13 @@ void run(cell x) {
 		break;
 	case OP_REVERSE_B:
 		if (!list_p(Acc)) expect("reverse!", "list", Acc);
+		if (constant_p(Acc)) error("reverse!: immutable", Acc);
 		Acc = nreverse(Acc);
+		skip(1);
+		break;
+	case OP_S9_BYTECODE:
+		if (!function_p(Acc)) expect("s9:bytecode", "procedure", Acc);
+		Acc = cvt_bytecode(closure_prog(Acc));
 		skip(1);
 		break;
 	case OP_STATS:
@@ -4878,13 +4919,11 @@ void run(cell x) {
 		skip(1);
 		break;
 	case OP_STRING_APPEND:
-		Acc = sconc(Acc, arg(0));
-		clear(1);
+		Acc = sconc(Acc);
 		skip(1);
 		break;
 	case OP_VECTOR_APPEND:
-		Acc = vconc(Acc, arg(0));
-		clear(1);
+		Acc = vconc(Acc);
 		skip(1);
 		break;
 	case OP_SET_INPUT_PORT_B:
@@ -5201,27 +5240,27 @@ void run(cell x) {
 		clear(1);
 		skip(1);
 		break;
-	case OP_STRING_SI_LESS_P:
+	case OP_STRING_CI_LESS_P:
 		siless(Acc, arg(0));
 		clear(1);
 		skip(1);
 		break;
-	case OP_STRING_SI_LTEQ_P:
+	case OP_STRING_CI_LTEQ_P:
 		silteq(Acc, arg(0));
 		clear(1);
 		skip(1);
 		break;
-	case OP_STRING_SI_EQUAL_P:
+	case OP_STRING_CI_EQUAL_P:
 		siequal(Acc, arg(0));
 		clear(1);
 		skip(1);
 		break;
-	case OP_STRING_SI_GRTR_P:
+	case OP_STRING_CI_GRTR_P:
 		sigrtr(Acc, arg(0));
 		clear(1);
 		skip(1);
 		break;
-	case OP_STRING_SI_GTEQ_P:
+	case OP_STRING_CI_GTEQ_P:
 		sigteq(Acc, arg(0));
 		clear(1);
 		skip(1);
@@ -5301,8 +5340,6 @@ cell interpret(cell x) {
 	int	i;
 
 	Ip = 0;
-	/*Sp = -1;
-	Fp = -1;*/
 	E0 = make_vector(length(Glob));
 	i = 0;
 	v = vector(E0);
@@ -5345,9 +5382,9 @@ void end_rec(void) {
 	Prog = unsave(1);
 }
 
-cell eval(cell x) {
+cell eval(cell x, int r) {
 	Tmp = x;
-	begin_rec();
+	if (r) begin_rec();
 	save(x);
 	Tmp = NIL;
 	x = expand(x, 1);
@@ -5359,7 +5396,7 @@ cell eval(cell x) {
 	car(Stack) = x;
 	x = interpret(x);
 	unsave(1);
-	end_rec();
+	if (r) end_rec();
 	return x;
 }
 
@@ -5377,13 +5414,12 @@ cell eval(cell x) {
  }
 
 void keyboard_quit(int sig) {
-	USED(sig);
 	fatal("received QUIT signal, exiting");
  }
 #endif /* unix */
 
 #ifdef plan9
- void keyboard_interrupt(void *dummy, char *note) {
+ void keyboard_interrupt(void *, char *note) {
 	if (strstr(note, "interrupt") == NULL)
 		noted(NDFLT);
 	reset_std_ports();
@@ -5432,7 +5468,7 @@ void repl(void) {
 		Intr = 0;
 		x = xread();
 		if (END_OF_FILE == x && 0 == Intr) break;
-		x = eval(x);
+		x = eval(x, 1);
 		if (x != UNSPECIFIC) {
 			setbind(S_starstar, x);
 			print_form(x);
@@ -5452,7 +5488,7 @@ void evalstr(char *s, int echo) {
 	clear_trace();
 	x = xsread(s);
 	if (UNDEFINED == x) return;
-	x = eval(x);
+	x = eval(x, 1);
 	if (echo) {
 		print_form(x);
 		nl();
@@ -5474,7 +5510,7 @@ void longusage(void) {
 	prints("Scheme 9 from Empty Space by Nils M Holm, ");
 	prints(RELEASE_DATE);
 	if (PATCHLEVEL) {
-		prints(" pl");
+		prints(" p");
 		writec(PATCHLEVEL+'0');
 	}
 	nl();
@@ -5622,6 +5658,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'q':
 				O_quiet = 1;
+				Report_to_stderr = 1;
 				break;
 			case 'u':
 				set_node_limit(0);
@@ -5655,7 +5692,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	unsave(2);
-	Argv = NULL == argv[i]? NIL: argument_vector(&argv[i+1]);
+	Argv = NULL == argv[i]? NIL: argv_to_list(&argv[i+1]);
 	setbind(S_arguments, Argv);
 	if (dump != NULL) {
 		dump_image(dump, S9magic);
