@@ -241,8 +241,10 @@ int sys_convD2M(cell x, uchar* buf, int len) {
 	b = tmp + sizeof *d;
 	e = tmp + sizeof tmp;
 	memset(d, 0, sizeof *d);
-	if (vector(x)[0] != dir_sym)
+	if (vector(x)[0] != dir_sym) {
+		printf("dir_sym: %ld  sym: %ld\n", dir_sym, vector(x)[0]);
 		FAIL("vector not a dir");
+	}
 
 	i = 1;
 	if (!integer_p(vector(x)[i]))
