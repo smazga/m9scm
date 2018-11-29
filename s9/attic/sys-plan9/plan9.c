@@ -58,9 +58,6 @@
 #include "s9ext.h"
 #include "s9-ffi.h"
 #include <fcall.h>
-#include <auth.h>
-#include <thread.h>
-#include <9p.h>
 
 #ifdef length
 #undef length
@@ -79,7 +76,6 @@
 
 static cell	New_node;
 #define assign(n,v)	{ New_node = v; n = New_node; }
-#define MSGSIZE 1024
 
 char	Last_errstr[ERRMAX];
 cell	Catch_errors = 0;
@@ -232,75 +228,49 @@ int sys_convD2M(cell x, uchar* buf, int len) {
 	int	r;
 	char	*b, *e;
 	int	i;
-	char *error;
-
-	/* vector: (type, qid, qid, mode, atime, mtime, length, name, uid, gid, muid) */
-#define FAIL(e) { error = e; goto convD2Mout; }
 
 	d = (Dir*)tmp;
 	b = tmp + sizeof *d;
 	e = tmp + sizeof tmp;
 	memset(d, 0, sizeof *d);
-	if (vector(x)[0] != dir_sym) {
-		printf("dir_sym: %ld  sym: %ld\n", dir_sym, vector(x)[0]);
-		FAIL("vector not a dir");
-	}
-
+	if (vector(x)[0] != dir_sym)
+		return -1;
 	i = 1;
 	if (!integer_p(vector(x)[i]))
-		FAIL("type not an integer");
+		return -1;
 	d->type = integer_value(name, vector(x)[i++]);
-
 	if (!integer_p(vector(x)[i]))
-		FAIL("dev not an integer");
+		return -1;
 	d->dev = int32_value(name, vector(x)[i++]);
-	
-	if (!string_p(vector(x)[i]) ||
-		str2qid(string(vector(x)[i++]), &d->qid))
-		FAIL("couldn't parse qid");
-
+	if (	!string_p(vector(x)[i]) ||
+		str2qid(string(vector(x)[i++]), &d->qid)
+	)
+		return -1;
 	if (!integer_p(vector(x)[i]))
-		FAIL("mode not an integer");
+		return -1;
 	d->mode = uint32_value(name, vector(x)[i++]);
-
 	if (!integer_p(vector(x)[i]))
-		FAIL("atime not an integer");
+		return -1;
 	d->atime = uint32_value(name, vector(x)[i++]);
-
 	if (!integer_p(vector(x)[i]))
-		FAIL("mtime not an integer");
+		return -1;
 	d->mtime = uint32_value(name, vector(x)[i++]);
-
 	if (!integer_p(vector(x)[i]))
-		FAIL("length not an integer");
+		return -1;
 	d->length = uint64_value(name, vector(x)[i++]);
-
 	if (!(d->name = string2str(vector(x)[i++], &b, e)))
-		FAIL("unable to parse name");
-
+		return -1;
 	if (!(d->uid = string2str(vector(x)[i++], &b, e)))
-		FAIL("unable to parse uid");
-
+		return -1;
 	if (!(d->gid = string2str(vector(x)[i++], &b, e)))
-		FAIL("unable to parse gid");
-
+		return -1;
 	if (!(d->muid = string2str(vector(x)[i], &b, e)))
-		FAIL("unable to parse muid");
-
+		return -1;
 	r = sizeD2M(d);
-	if (r > len) {
-		fprint(2, "r(%d) > len(%d)\n", r, len);
-		FAIL("invalid dir size");
-	}
-
+	if (r > len)
+		return -1;
 	convD2M(d, buf, r);
-	/* fprint(2, "sys_convD2M: %D\n", d); */
 	return r;
-
-convD2Mout:
-	if (1) fprint(2, "sys_convD2M parse error: %s\n", error);
-	return -1;
-#undef FAIL
 }
 
 cell sys_convM2S(uchar* edir, int len) {
@@ -380,19 +350,15 @@ cell sys_convM2S(uchar* edir, int len) {
 		v[4] = make_string(f->data, f->count);
 		break;
 	case Tclunk:
-		v[0] = Tclunk_sym;
 		v[2] = make_ulong_integer(f->fid);
 		break;
 	case Tremove:
-		v[0] = Tremove_sym;
 		v[2] = make_ulong_integer(f->fid);
 		break;
 	case Tstat:
-		v[0] = Tstat_sym;
 		v[2] = make_ulong_integer(f->fid);
 		break;
 	case Twstat:
-		v[0] = Twstat_sym;
 		v[2] = make_ulong_integer(f->fid);
 		v[3] = sys_convM2D(f->stat, f->nstat);
 		break;
@@ -461,162 +427,120 @@ cell sys_convM2S(uchar* edir, int len) {
 		break;
 	}
 	unsave(1);
-	
-	/* fprint(2, "convM2S: %F\n", f); */
 	return n;
 }
 
 int sys_convS2M(cell x, uchar*buf, int len) {
-	Fcall f;
+	Fcall	*f = (Fcall*)&buf;
 	int	r, flen, i;
-	char *b, *e;
+	char	*b, *e;
 	cell	*v;
 	
-	b = (char*)emalloc9p(1024);
+	b = (char*)&f[1];
 	e = (char*)buf + len;
 	v = vector(x);
 	i = 2;
-	f.tag = ushort_value("sys:convS2M", v[1]);
-
-/* T */
+	f->tag = make_ulong_integer(v[1]);
 	if (v[0] == Tversion_sym) {
-		f.type = Tversion;
-		f.version = (char*)b;
+		f->type = Tversion;
+		f->version = (char*)b;
 		flen = string_len(v[i]);
-		strncpy(f.version, string(v[i]), flen);
-		f.version[flen++] = 0;
+		strncpy(f->version, string(v[i]), flen);
+		f->version[flen++] = 0;
 		b += flen; i++;
-		f.msize = make_ulong_integer(v[i]);
+		f->msize = make_ulong_integer(v[i]);
 	} else if (v[0] == Tauth_sym) {
-		f.type = Tauth;
-		f.afid = make_ulong_integer(v[i++]);
-		if (!(f.uname = string2str(v[i++], &b, e)))
+		f->type = Tauth;
+		f->afid = make_ulong_integer(v[i++]);
+		if (!(f->uname = string2str(v[i++], &b, e)))
 			return -1;
-		if (!(f.aname = string2str(v[i], &b, e)))
+		if (!(f->aname = string2str(v[i], &b, e)))
 			return -1;
 	} else if (v[0] == Tattach_sym) {
-		f.type = Tattach;
-		f.fid = make_ulong_integer(v[i++]);
-		f.afid = make_ulong_integer(v[i++]);
-		if (!(f.uname = string2str(v[i++], &b, e)))
+		f->type = Tattach;
+		f->fid = make_ulong_integer(v[i++]);
+		f->afid = make_ulong_integer(v[i++]);
+		if (!(f->uname = string2str(v[i++], &b, e)))
 			return -1;
-		if (!(f.aname = string2str(v[i], &b, e)))
+		if (!(f->aname = string2str(v[i], &b, e)))
 			return -1;
 	} else if (v[0] == Tflush_sym) {
-		f.type = Tflush;
-		f.oldtag = make_ulong_integer(v[i]);
+		f->type = Tflush;
+		f->oldtag = make_ulong_integer(v[i]);
 	} else if (v[0] == Twalk_sym) {
 		int j;
-		f.type = Twalk;
-		f.fid = make_ulong_integer(v[i++]);
-		f.newfid = make_ulong_integer(v[i++]);
-		f.nwname = vector_len(v[i]);
+		f->type = Twalk;
+		f->fid = make_ulong_integer(v[i++]);
+		f->newfid = make_ulong_integer(v[i++]);
+		/* XXX check vector */
+		f->nwname = vector_len(v[i]);
 		v = vector(v[i]);
-		for (j = 0; j < f.nwname; j++)
-			if (!(f.wname[j] = string2str(v[j], &b, e)))
+		for (j = 0; j < f->nwname; j++)
+			if (!(f->wname[j] = string2str(v[j], &b, e)))
 				return -1;
 	} else if (v[0] == Topen_sym) {
-		f.type = Topen;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Topen;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Tcreate_sym) {
-		f.type = Tcreate;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Tcreate;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Tread_sym) {
-		f.type = Tread;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Tread;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Twrite_sym) {
-		f.type = Twrite;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Twrite;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Tclunk_sym) {
-		f.type = Tclunk;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Tclunk;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Tremove_sym) {
-		f.type = Tremove;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Tremove;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Tstat_sym) {
-		f.type = Tstat;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Tstat;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Twstat_sym) {
-		f.type = Twstat;
-		f.fid = make_ulong_integer(v[i]);
-/* R */
+		f->type = Twstat;
+		f->fid = make_ulong_integer(v[i]);
+
 	} else if (v[0] == Rversion_sym) {
-		f.type = Rversion;
-		f.fid = 0;
-		f.msize = uint32_value("sys:convS2M", v[i++]);
-		if (!(f.version = string2str(v[i], &b, e)))
+		f->type = Rversion;
+		f->msize = make_ulong_integer(v[i++]);
+		if (!(f->version = string2str(v[i], &b, e)))
 			return -1;
 	} else if (v[0] == Rauth_sym) {
-		f.type = Rauth;
+		f->type = Rauth;
 	} else if (v[0] == Rattach_sym) {
-		f.type = Rattach;
-		str2qid(string(vector(x)[i]), &(f.qid));
+		f->type = Rattach;
 	} else if (v[0] == Rerror_sym) {
-		f.type = Rerror;
-		if (!(f.ename = string2str(v[i], &b, e)))
-			return -1;
+		f->type = Rerror;
 	} else if (v[0] == Rflush_sym) {
-		f.type = Rflush;
+		f->type = Rflush;
 	} else if (v[0] == Rwalk_sym) {
-		int j;
-		f.type = Rwalk;
-		f.fid = 0;
-		f.nwqid = vector_len(v[i]);
-		v = vector(v[i]);
-		for (j = 0; j < f.nwqid; j++)
-			str2qid(string(v[j]), &(f.wqid[j]));
+		f->type = Rwalk;
 	} else if (v[0] == Ropen_sym) {
-		f.type = Ropen;
+		f->type = Ropen;
 	} else if (v[0] == Rcreate_sym) {
-		f.type = Rcreate;
+		f->type = Rcreate;
 	} else if (v[0] == Rread_sym) {
-		f.type = Rread;
-		f.fid = uint32_value("sys:convS2M", v[i++]);
-		f.data = (char *)emalloc9p(MSGSIZE);
-		f.count = sys_convD2M(v[i], (uchar*)f.data, MSGSIZE);
-		/* fprint(2, "convS2M: f.data: %s (count: %d)\n", f.data, f.count); */
-		if(f.count == -1) {
-			memset(f.data, 0, MSGSIZE);
-			f.count = 0;
-		}
+		f->type = Rread;
 	} else if (v[0] == Rwrite_sym) {
-		f.type = Rwrite;
-		f.fid = make_ulong_integer(v[i]);
+		f->type = Rwrite;
+		f->fid = make_ulong_integer(v[i]);
 	} else if (v[0] == Rclunk_sym) {
-		f.type = Rclunk;
+		f->type = Rclunk;
 	} else if (v[0] == Rremove_sym) {
-		f.type = Rremove;
+		f->type = Rremove;
 	} else if (v[0] == Rstat_sym) {
-		f.type = Rstat;
-		f.stat = (uchar *)emalloc9p(1024); /* see aux/searchfs.c */
-		
-		v = vector(v[i]);
-		f.nstat = sys_convD2M(v[0], f.stat, 1024);
-#ifdef NOTHING
-		v = vector(v[i]);
-		for (i = 0; i < f.nstat; i++) {
-			Dir d;
-			memset(&d, 0, sizeof(d));
-			if(sys_convD2M(v[i], &(f.stat[i]), sizeof(Dir)) < 0)
-				fprint(2, "failed to convert %d\n", i);
-			else {
-				memcpy(&(f.stat[i]), &d, sizeof(d));
-				fprint(2, "convS2M: convD2M: %D\n", d);
-			}
-		}
-#endif
+		f->type = Rstat;
 	} else if (v[0] == Rwstat_sym) {
-		f.type = Rwstat;
-	} else {
-		fprint(2, "unknown tag: %d\n", v[0]);
+		f->type = Rwstat;
+	} else
 		return -1;
-	}
-
-	/* fprint(2, "convS2M: %F\n", &f); */
-	r = sizeS2M(&f);
+	r = sizeS2M(f);
 	if (r > len)
 		return -1;
-	convS2M(&f, buf, len);
+	convS2M(f, buf, len);
 	return r;
 }
 
@@ -633,7 +557,7 @@ cell sys_error(char *who, cell what) {
 		strcpy(&buf[k], ": ");
 		k += 2;
 	}
-	strcpy(buf+k, Last_errstr);
+	strcpy(buf+k+2, Last_errstr);
 	error(buf, what);
 	return FALSE;
 }
@@ -642,14 +566,13 @@ cell sys_ok(void) {
 	return Catch_errors? TRUE: UNSPECIFIC;
 }
 
-cell pp_sys_alarm(void) {
-	cell x = parg(1);
+cell pp_sys_alarm(cell x) {
 	if (alarm(integer_value("sys:alarm", car(x))))
 		return sys_error("sys:alarm", x);
 	return sys_ok();
 }
 
-cell pp_sys_await(void) {
+cell pp_sys_await(cell) {
 	char buf[ERRMAX+40];
 	int len =  await(buf, sizeof buf - 1);
 	if (len <= 0)
@@ -657,8 +580,7 @@ cell pp_sys_await(void) {
 	return make_string(buf, len);
 }
 
-cell pp_sys_bind(void) {
-	cell x = parg(1);
+cell pp_sys_bind(cell x) {
 	return bind(string(car(x)), string(cadr(x)), 
 		integer_value("sys:access", caddr(x))) < 0? FALSE: TRUE;
 }
@@ -681,36 +603,30 @@ cell pp_sys_sbrk(cell x) {
 }
 #endif
 
-cell pp_sys_catch_errors(void) {
-	cell x = parg(1);
-
+cell pp_sys_catch_errors(cell x) {
 	Catch_errors = car(x) == TRUE;
 	if (Catch_errors) Last_errstr[0] = '\0';
 	return UNSPECIFIC;
 }
 
-cell pp_sys_chdir(void) {
-	cell x = parg(1);
-
+cell pp_sys_chdir(cell x) {
 	if (chdir(string(car(x))) < 0)
 		return sys_error("sys:chdir", x);
 	return sys_ok();
 }
 
-cell pp_sys_close(void) {
-	cell x = parg(1);
-
+cell pp_sys_close(cell x) {
 	if (close(integer_value("sys:close", car(x))) < 0)
 		return sys_error("sys:close", x);
 	return sys_ok();
 }
 
-cell pp_sys_convD2M(void) {
-	cell x = parg(1);
-	uchar	buf[8192+IOHDRSZ];
-	int	len = sys_convD2M(car(x), buf, sizeof buf);
+cell pp_sys_convD2M(cell x) {
+	uchar	buf[STATSIZE];
+	int	len = sys_convD2M(car(x), buf, STATSIZE);
 	cell	n;
 
+	/* XXX check size */
 	if (len < 0)
 		return FALSE;
 	n = make_string("", len);
@@ -718,8 +634,7 @@ cell pp_sys_convD2M(void) {
 	return n;
 }
 
-cell pp_sys_convM2D(void) {
-	cell x = parg(1);
+cell pp_sys_convM2D(cell x) {
 	uchar*	buf = (uchar*)string(car(x));
 	int	len = string_len(car(x));
 
@@ -729,10 +644,9 @@ cell pp_sys_convM2D(void) {
 	return sys_convM2D(buf, BIT16SZ + GBIT16(buf));
 }
 
-cell pp_sys_convS2M(void) {
-	cell x = parg(1);
-	uchar	buf[8192+IOHDRSZ];
-	int	len = sys_convS2M(car(x), buf, sizeof buf);
+cell pp_sys_convS2M(cell x) {
+	uchar	buf[STATSIZE];
+	int	len = sys_convS2M(car(x), buf, STATSIZE);
 
 	/* XXX check size */
 	if (len < 0)
@@ -740,8 +654,7 @@ cell pp_sys_convS2M(void) {
 	return make_string((char*)buf, len);
 }
 
-cell pp_sys_convM2S(void) {
-	cell x = parg(1);
+cell pp_sys_convM2S(cell x) {
 	uchar*	buf = (uchar*)string(car(x));
 	int	len = string_len(car(x));
 
@@ -751,29 +664,10 @@ cell pp_sys_convM2S(void) {
 	return sys_convM2S(buf, BIT16SZ + GBIT16(buf));
 }
 
-cell pp_sys_userpasswd(void) {
-	UserPasswd *up;
-	cell x, pass;
-
-	x = parg(1);
-	up = auth_getuserpasswd(auth_getkey, string(car(x)));
-	if(up == nil)
-		pass = cons(NIL, NIL);
-	else {
-		pass = cons(
-			make_string(up->user, strlen(up->user)),
-			make_string(up->passwd, strlen(up->passwd)));
-		free(up);
-	}
-	return pass;
-}
-
-cell pp_sys_create(void) {
-	cell x;
+cell pp_sys_create(cell x) {
 	int	fd;
 	char	name[] = "sys:create";
 
-	x = parg(1);
 	fd = create(string(car(x)),
 		    integer_value(name, cadr(x)),
 		    integer_value(name, caddr(x)));
@@ -782,8 +676,7 @@ cell pp_sys_create(void) {
 	return make_long_integer(fd);
 }
 
-cell pp_sys_dirread(void) {
-	cell	x = parg(1);
+cell pp_sys_dirread(cell x) {
 	cell	r, a;
 	char	name[] = "sys:dirread";
 	int	fd = integer_value(name, car(x));
@@ -813,12 +706,10 @@ cell pp_sys_dirread(void) {
 	return r;
 }
 
-cell pp_sys_dup(void) {
-	cell x;
+cell pp_sys_dup(cell x) {
 	int	r;
 	char	name[] = "sys:dup";
 
-	x = parg(1);
 	r = dup(integer_value(name, car(x)),
 		integer_value(name, cadr(x)));
 	if (r < 0)
@@ -826,8 +717,7 @@ cell pp_sys_dup(void) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_errstr(void) {
-	cell x = parg(1);
+cell pp_sys_errstr(cell x) {
 	int	len;
 	char	*buf1 = string(car(x));
 	char	buf[ERRMAX];
@@ -839,25 +729,22 @@ cell pp_sys_errstr(void) {
 	return make_string(buf, len);
 }
 
-cell pp_sys_exec(void) {
+cell pp_sys_exec(cell x) {
 	char	**argv;
-	cell	x, p;
+	cell	p;
 	int	i;
 
-	x = parg(1);
 	for (p = cadr(x); p != NIL; p = cdr(p)) {
 		if (!pair_p(p))
-			error(
-				"sys:exec: improper list, last element is",
+			error("sys:exec: improper list, last element is",
 				p);
 		if (!string_p(car(p)))
-			error(
-				"sys:exec: expected list of string, got",
+			error("sys:exec: expected list of string, got",
 				car(p));
 	}
 	argv = malloc((s9_length(cadr(x)) + 2) * sizeof(char *));
 	if (argv == NULL)
-		return sys_error("sys:exec", VOID);
+		error("sys:exec failed (no memory)", VOID);
 	argv[0] = string(car(x));
 	i = 1;
 	for (p = cadr(x); p != NIL; p = cdr(p))
@@ -867,40 +754,27 @@ cell pp_sys_exec(void) {
 	return sys_error("sys:exec", x);
 }
 
-cell pp_sys_exit(void) {
-	exits(nil);
-	fatal("exits() failed");
-	return sys_ok();
-}
-
-cell pp_sys_exits(void) {
-	cell x = parg(1);
-
+cell pp_sys_exits(cell x) {
 	exits(string(car(x)));
 	fatal("exits() failed");
 	return sys_ok();
 }
 
-cell pp_sys_fauth(void) {
-	cell x;
+cell pp_sys_fauth(cell x) {
 	int	r;
 	char	name[] = "sys:fauth";
 
-	x = parg(1);
 	r = fauth(integer_value(name, car(x)), string(cadr(x)));
 	if (r < 0)
 		return sys_error(name, VOID);
 	return make_long_integer(r);
 }
 
-cell pp_sys_fd2path(void) {
-	cell x;
+cell pp_sys_fd2path(cell x) {
 	int	len;
 	char	name[] = "sys:fd->path";
 
 	cell buf = make_string("", 1024), buf2;
-
-	x = parg(1);
 	if (fd2path(integer_value(name, car(x)), string(buf), 1024))
 		return sys_error(name, x);
 	len = strlen(string(buf));
@@ -911,15 +785,7 @@ cell pp_sys_fd2path(void) {
 	return buf2;
 }
 
-cell pp_sys_flush(void) {
-	cell x = parg(1);
-
-	if (fflush(Ports[port_no(car(x))]))
-		return sys_error("sys:flush", x);
-	return sys_ok();
-}
-
-cell pp_sys_fork(void) {
+cell pp_sys_fork(cell) {
 	int	pid;
 
 	pid = fork();
@@ -928,8 +794,7 @@ cell pp_sys_fork(void) {
 	return make_long_integer(pid);
 }
 
-cell pp_sys_fstat(void) {
-	cell x = parg(1);
+cell pp_sys_fstat(cell x) {
 	uchar	edir[STATSIZE];
 	char	name[]="sys:fstat";
 	int	len = fstat(integer_value(name, car(x)), edir, STATSIZE);
@@ -939,8 +804,7 @@ cell pp_sys_fstat(void) {
 	return make_string((char*)edir, len);
 }
 
-cell pp_sys_fwstat(void) {
-	cell	x = parg(1);
+cell pp_sys_fwstat(cell x) {
 	cell	fd = car(x);
 	cell	st = cadr(x);
 	int	r;
@@ -950,32 +814,7 @@ cell pp_sys_fwstat(void) {
 	return r < 0? FALSE : TRUE;
 }
 
-cell pp_sys_make_input_port(void) {
-	int	in = new_port();
-
-	if (in < 0)
-		error("sys:make-input-port: out of ports", VOID);
-
-	Ports[in] = fdopen(integer_value("sys:make-input-port", parg(1)),
-				"r");
-	return make_port(in, T_INPUT_PORT);
-}
-
-cell pp_sys_make_output_port(void) {
-	cell x;
-	int	out = new_port();
-
-	if (out < 0)
-		error("sys:make-output-port: out of ports", VOID);
-
-	x = parg(1);
-	Ports[out] = fdopen(integer_value("sys:make-output-port", car(x)),
-				"w");
-	return make_port(out, T_OUTPUT_PORT);
-}
-
-cell pp_sys_mount(void) {
-	cell	x = parg(1);
+cell pp_sys_mount(cell x) {
 	char	name[] = "sys:mount";
 	cell	y = cdddr(x);
 
@@ -990,18 +829,16 @@ cell pp_sys_mount(void) {
 		     string(cadr(y))) < 0 ? FALSE : TRUE;
 }
 
-cell pp_sys_open(void) {
-	cell x;
+cell pp_sys_open(cell x) {
 	int	fd;
 
-	x = parg(1);
 	fd = open(string(car(x)), integer_value("sys:open", cadr(x)));
 	if (fd < 0)
 		return sys_error("sys:open", x);
 	return make_long_integer(fd);
 }
 
-cell pp_sys_pipe(void) {
+cell pp_sys_pipe(cell) {
 	int	fd[2];
 	cell	n;
 
@@ -1014,12 +851,10 @@ cell pp_sys_pipe(void) {
 	return n;
 }
 
-cell pp_sys_postnote(void) {
-	cell	x;
+cell pp_sys_postnote(cell x) {
 	char	name[] = "sys:postnote";
 	int	r;
 
-	x = parg(1);
 	r = postnote(integer_value(name, car(x)), 
 		     integer_value(name, cadr(x)),
 		     string(cadr(x)));
@@ -1028,12 +863,11 @@ cell pp_sys_postnote(void) {
 	return TRUE;
 }
 
-cell pp_sys_pread(void) {
-	cell	x, buf, buf2;
+cell pp_sys_pread(cell x) {
+	cell	buf, buf2;
 	int	r, k;
 	char	name[] = "sys:pread";
 
-	x = parg(1);
 	k = integer_value(name, cadr(x));
 	buf = make_string("", k);
 	r = pread(integer_value(name, car(x)), string(buf), k,
@@ -1050,12 +884,10 @@ cell pp_sys_pread(void) {
 	return buf;
 }
 
-cell pp_sys_pwrite(void) {
-	cell x;
+cell pp_sys_pwrite(cell x) {
 	int	r;
 	char	name[] = "sys:pwrite";
 
-	x = parg(1);
 	r = pwrite(integer_value(name, car(x)), string(cadr(x)),
 		string_len(cadr(x))-1, int64_value(name, caddr(x)));
 	if (r < 0)
@@ -1063,34 +895,14 @@ cell pp_sys_pwrite(void) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_read9pmsg(void) {
-	int fd, n;
-	uchar buf[8192+IOHDRSZ];
-	cell x, r;
-	char name[] = "sys:read9pmsg";
-
-	x = parg(1);
-	fd = integer_value(name, car(x));
-	n = read9pmsg(fd, buf, sizeof buf);
-	if (n < 0)
-		return sys_error(name, x);
-
-	r = make_string("", n);
-	memcpy(string(r), buf, n);
-	return r;
-}
-
-cell pp_sys_read(void) {
-	cell	x, buf, buf2;
+cell pp_sys_read(cell x) {
+	cell	buf, buf2;
 	int	r, k;
 	char	name[] = "sys:read";
 
-	x = parg(1);
 	k = integer_value(name, cadr(x));
 	buf = make_string("", k);
 	r = read(integer_value(name, car(x)), string(buf), k);
-	if (r == 0)
-		return END_OF_FILE;
 	if (r < 0)
 		return sys_error(name, x);
 	{
@@ -1107,42 +919,34 @@ cell pp_sys_read(void) {
 	return buf;
 }
 
-cell pp_sys_rendezvous(void) {
-	cell x;
+cell pp_sys_rendezvous(cell x) {
 	char*	r;
 
-	x = parg(1);
 	r = rendezvous(symbol_name(car(x)), string(cadr(x)));
 	if (r == (char*)-1)
 		return sys_error("sys:rendezvous", x);
 	return make_string(r, strlen(r));
 }
 
-cell pp_sys_rfork(void) {
-	cell x;
+cell pp_sys_rfork(cell x) {
 	int	pid;
 
-	x = parg(1);
 	pid = rfork(integer_value("sys:rfork", car(x)));
 	if (pid < 0)
 		return sys_error("sys:rfork", VOID);
 	return make_long_integer(pid);
 }
 
-cell pp_sys_remove(void) {
-	cell x = parg(1);
-
+cell pp_sys_remove(cell x) {
 	if (remove(string(car(x))) < 0)
 		return sys_error("sys:remove", x);
 	return sys_ok();
 }
 
-cell pp_sys_seek(void) {
-	cell	x;
+cell pp_sys_seek(cell x) {
 	char	name[] = "sys:seek";
 	vlong	r;
 
-	x = parg(1);
 	r = seek(integer_value(name, car(x)),
 		int64_value(name, cadr(x)),
 		integer_value(name, caddr(x)));
@@ -1151,15 +955,13 @@ cell pp_sys_seek(void) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_sleep(void) {
-	cell x = parg(1);
+cell pp_sys_sleep(cell x) {
 	if (sleep(integer_value("sys:sleep", car(x))))
 		return sys_error("sys:sleep", x);
 	return sys_ok();
 }
 
-cell pp_sys_stat(void) {
-	cell	x = parg(1);
+cell pp_sys_stat(cell x) {
 	uchar	edir[STATSIZE];
 	int	len = stat(string(car(x)), edir, STATSIZE);
 	cell	r;
@@ -1170,12 +972,11 @@ cell pp_sys_stat(void) {
 	return r;
 }
 
-cell pp_sys_unmount(void) {
-	cell x = parg(1);
+cell pp_sys_unmount(cell x) {
 	return unmount(string(car(x)), string(cadr(x))) < 0? FALSE : TRUE;
 }
 
-cell pp_sys_wait(void) {
+cell pp_sys_wait(cell) {
 	cell	n;
 	char	buf[ERRMAX+40];
 	int	len =  await(buf, sizeof buf - 1);
@@ -1194,7 +995,7 @@ cell pp_sys_wait(void) {
 	return n;
 }
 
-cell pp_sys_waitpid(void) {
+cell pp_sys_waitpid(cell) {
 	char	buf[ERRMAX+40];
 	int	len =  await(buf, sizeof buf - 1);
 	char*	fld[5];
@@ -1205,11 +1006,9 @@ cell pp_sys_waitpid(void) {
 	return make_long_integer(atoi(fld[0]));
 }
 
-cell pp_sys_write(void) {
-	cell x;
+cell pp_sys_write(cell x) {
 	int	r;
 
-	x = parg(1);
 	r = write(integer_value("sys:write", car(x)), string(cadr(x)),
 		string_len(cadr(x))-1);
 	if (r < 0)
@@ -1217,8 +1016,7 @@ cell pp_sys_write(void) {
 	return make_long_integer(r);
 }
 
-cell pp_sys_wstat(void) {
-	cell	x = parg(1);
+cell pp_sys_wstat(cell x) {
 	uchar*	buf = (uchar*)string(cadr(x));
 	int	len = string_len(cadr(x));
 	int	r;
@@ -1227,7 +1025,7 @@ cell pp_sys_wstat(void) {
 	return r < 0? FALSE : TRUE;
 }
 
-cell pp_sys_command_line(void) {
+cell pp_sys_command_line(cell) {
 	extern cell	Argv;
 
 	return Argv;
@@ -1302,18 +1100,14 @@ static Magic_const magic_const[] = {
 	{0,0}
 };
 
-cell pp_sys_magic_const(void) {
-	char*	name = string(parg(1));
+cell pp_sys_magic_const(cell x) {
+	char*		name = string(car(x));
 	Magic_const	*k;
 
 	for (k = magic_const; k->name; k++)
 		if (strcmp(k->name, name) == 0)
 			return make_long_integer(k->value);
 	return FALSE;
-}
-
-cell pp_sys_err(void) {
-	return make_string(Last_errstr, strlen(Last_errstr));
 }
 
 S9_PRIM Plan9_primitives[] = {
@@ -1330,15 +1124,12 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:convd2m",    pp_sys_convD2M,    1, 1, { VEC,___,___ } },
  {"sys:dirread",    pp_sys_dirread,    1, 1, { INT,___,___ } },
  {"sys:dup",        pp_sys_dup,        2, 2, { INT,INT,___ } },
- {"sys:err",		pp_sys_err,        0, 0, { ___,___,___ } },
  {"sys:errstr",     pp_sys_errstr,     1, 1, { STR,___,___ } },
  {"sys:exec",       pp_sys_exec,       2, 2, { STR,LST,___ } },
- {"sys:exit",       pp_sys_exit,       0, 0, { ___,___,___ } },
  {"sys:exits",      pp_sys_exits,      1, 1, { STR,___,___ } },
  {"sys:fauth",      pp_sys_fauth,      0, 0, { ___,___,___ } },
  {"sys:convs2m",    pp_sys_convS2M,    1, 1, { VEC,___,___ } },
- {"sys:fd->path",   pp_sys_fd2path,    1, 1, { INT,___,___ } },
- {"sys:flush",      pp_sys_flush,      1,  1,{ OUP,___,___ } },
+ {"sys:fd2path",    pp_sys_fd2path,    1, 1, { INT,___,___ } },
  {"sys:fork",       pp_sys_fork,       0, 0, { ___,___,___ } },
  {"sys:fstat",      pp_sys_fstat,      1, 1, { INT,___,___ } },
 #ifdef FOO
@@ -1346,8 +1137,6 @@ S9_PRIM Plan9_primitives[] = {
 #endif
  {"sys:fwstat",     pp_sys_fwstat,     2, 2, { INT,STR,___ } },
  {"sys:magic-const",pp_sys_magic_const,1, 1, { STR,___,___ } },
- {"sys:make-input-port",  pp_sys_make_input_port,  1,  1, { INT,___,___ } },
- {"sys:make-output-port", pp_sys_make_output_port, 1,  1, { INT,___,___ } },
  {"sys:mount",      pp_sys_mount,      5, 5, { INT,INT,STR } },
  {"sys:convm2d",    pp_sys_convM2D,    1, 1, { STR,___,___ } },
  {"sys:convm2s",    pp_sys_convM2S,    1, 1, { STR,___,___ } },
@@ -1361,7 +1150,6 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:pread",      pp_sys_pread,      3, 3, { INT,INT,INT } },
  {"sys:pwrite",     pp_sys_pwrite,     3, 3, { INT,STR,INT } },
  {"sys:read",       pp_sys_read,       2, 2, { INT,INT,___ } },
- {"sys:read9pmsg",	pp_sys_read9pmsg,  1, 1, { INT,___,___ } },
  {"sys:remove",     pp_sys_remove,     1, 1, { STR,___,___ } },
  {"sys:rendezvous", pp_sys_rendezvous, 2, 2, { SYM,STR,___ } },
  {"sys:rfork",      pp_sys_rfork,      1, 1, { INT,___,___ } },
@@ -1384,7 +1172,6 @@ S9_PRIM Plan9_primitives[] = {
  {"sys:sysr1",      pp_sys_sysr1,      0, 0, { ___,___,___ } },
 #endif
  {"sys:unmount",    pp_sys_unmount,    2, 2, { STR,STR,___ } },
- {"sys:userpasswd", pp_sys_userpasswd, 1, 1, { STR,___,___ } },
  {"sys:wait",       pp_sys_wait,       0, 0, { ___,___,___ } },
  {"sys:waitpid",    pp_sys_waitpid,    0, 0, { ___,___,___ } },
  {"sys:write",      pp_sys_write,      2, 2, { INT,STR,___ } },
@@ -1461,8 +1248,4 @@ void sys_init(void) {
 
 	s9_add_image_vars(Plan9_image_vars);
 	add_primitives("sys-plan9", Plan9_primitives);
-
-	fmtinstall('M', dirmodefmt);
-	fmtinstall('F', fcallfmt);
-	fmtinstall('D', dirfmt);
 }
