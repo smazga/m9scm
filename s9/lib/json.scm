@@ -14,10 +14,6 @@
 ; JSON:LOAD takes a file (specified in STRING) and loads it into a list. JSON
 ; types are represented with scheme types as follows:
 ;
-; STRING->JSON takes a string and loads into a JSON-style list.
-;
-; JSON->STRING takes a compatible list and returns a JSON-style string.
-;
 ;  array      --> vector
 ;  dictionary --> list of pairs
 ;  string     --> string
@@ -25,6 +21,10 @@
 ;  null       --> '()
 ;  true       --> #t
 ;  false      --> #f
+;
+; STRING->JSON takes a string and loads into a JSON-style list.
+;
+; JSON->STRING takes a compatible list and returns a JSON-style string.
 ;
 ; Example: (string->json "{\"key\": \"value\"}") ==> (("key" . "value"))
 ;          (json->string '(("key" . "value"))) ==> "{\"key\":\"value\"}"
