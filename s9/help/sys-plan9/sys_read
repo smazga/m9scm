@@ -1,8 +1,11 @@
 S9 EXT  (sys:read integer integer)  ==>  string
+        (sys:write integer string)  ==>  integer
 
-Read INTEGER (argument 2) bytes from file descriptor INTEGER (argument 1) and
+SYS:READ reads INTEGER (argument 2) bytes from file descriptor INTEGER (argument 1) and
 return them.
 
-See also:
-  sys:write
-  read(2)
+SYS:WRITE writes STRING to file descriptor INTEGER and return the number of bytes written.
+
+(define x (sys:create "blort" sys:OWRITE #o644))
+(sys:write x "foobar")  ==>  6
+
