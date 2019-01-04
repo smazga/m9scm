@@ -756,7 +756,7 @@ cell pp_sys_userpasswd(void) {
 	cell x, pass;
 
 	x = parg(1);
-	up = auth_getuserpasswd(auth_getkey, string(car(x)));
+	up = auth_getuserpasswd(auth_getkey, string(x));
 	if(up == nil)
 		pass = cons(NIL, NIL);
 	else {
