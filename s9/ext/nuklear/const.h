@@ -1,5 +1,4 @@
-cell pp_nk_load_consts(cell x) {
-	USED(x);
+cell pp_nk_load_consts(void) {
 	Sys_const consts[] = {
 		CONST(NK_WINDOW_BORDER),
 		CONST(NK_WINDOW_MOVABLE),
@@ -126,7 +125,7 @@ cell pp_nk_load_consts(cell x) {
 	for(i = 0; consts[i].name != NULL; i++) {
 		char cmd[128];
 		sprintf(cmd, "(define nk:%s %d)", (consts[i].name)+3, consts[i].value);
-		eval(xsread(cmd));
+		eval(xsread(cmd), 1);
 	}
 
 	return UNSPECIFIC;
