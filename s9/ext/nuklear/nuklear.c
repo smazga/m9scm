@@ -14,13 +14,13 @@
 
 #include <draw.h>
 #include <nuklear.h>
+#include "../sys-plan9/s9-ffi.h"
 #include "const.h"
 
 static struct nk_context ctx;
 
-cell pp_nk_init(cell x) {
+cell pp_nk_init(void) {
 	struct nk_user_font nkfont;
-	USED(x);
 
 	fprint(2, "initializing draw\n");
 
@@ -32,11 +32,11 @@ cell pp_nk_init(cell x) {
 	nk_plan9_makefont(&nkfont, font);
 
 	if (nk_init_default(&ctx, &nkfont) == 0)
-		error("unable to initialize libnuklear", x);
+		error("unable to initialize libnuklear", parg(1));
 	return UNSPECIFIC;
 }
 
-cell pp_nk_begin(cell n) {
+cell pp_nk_begin(void) {
 	char *name = "nk:begin";
 	char *title;
 	int x, y, w, h;
@@ -44,68 +44,63 @@ cell pp_nk_begin(cell n) {
 	cell *v;
 	int result;
 
-	fprint(2, "s9_string\n");
-	title = s9_string(car(n));
+	title = s9_string(parg(1));
 	fprint(2, "title: %s\n", title);
 
-	v = vector(cadr(n));
+	v = vector(parg(2));
 	x = integer_value(name, v[0]);
 	y = integer_value(name, v[1]);
 	w = integer_value(name, v[2]);
 	h = integer_value(name, v[3]);
 
-	flags = integer_value(name, caddr(n));
+	flags = uint32_value(name, parg(3));
 
+	fprint(2, "initiate input\n");
+	nk_input_begin(&ctx);
 	fprint(2, "calling nk_begin %p %d %d %d %d %x\n", &ctx, x, y, w, h, flags);
-	result = nk_begin(&ctx, title, nk_rect(x, y, w, h), flags);
+	result = nk_begin(&ctx, title, nk_rect(x, y, Dx(screen->r), h), 0x6b);
 	fprint(2, "begun: %d\n", result);
 
 	return (result > 0)? TRUE: FALSE;
 }
 
-cell pp_nk_end(cell x) {
-	USED(x);
+cell pp_nk_end(void) {
 	nk_end(&ctx);
 	return UNSPECIFIC;
 }
 
-cell pp_nk_clear(cell x) {
-	USED(x);
+cell pp_nk_clear(void) {
 	nk_clear(&ctx);
 	return UNSPECIFIC;
 }
 
-cell pp_nk_free(cell x) {
-	USED(x);
-
+cell pp_nk_free(void) {
 	nk_free(&ctx);
 	return UNSPECIFIC;
 }
 
-cell pp_nk_layout_row_dynamic(cell x) {
+cell pp_nk_layout_row_dynamic(void) {
 	char *name = "nk:layout-row-dynamic";
 	int height, cols;
 
 	fprint(2, "layout_row_dynamic\n");
-	height = integer_value(name, car(x));
-	cols = integer_value(name, cadr(x));
+	height = integer_value(name, parg(1));
+	cols = integer_value(name, parg(2));
 
 	nk_layout_row_dynamic(&ctx, (float)height, cols);
 	return UNSPECIFIC;
 }
 
-cell pp_nk_button_label(cell x) {
+cell pp_nk_button_label(void) {
 	/* char *name = "nk:button-label"; */
 	char *str;
 
-	str = s9_string(car(x));
+	str = s9_string(parg(1));
 	nk_button_label(&ctx, str);
 	return UNSPECIFIC;
 }
 
-cell pp_nk_render(cell x) {
-	USED(x);
-
+cell pp_nk_render(void) {
 	fprint(2, "render\n");
 	draw(screen, screen->r, display->black, nil, ZP);
 	nk_plan9_render(&ctx, screen);
