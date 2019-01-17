@@ -136,7 +136,7 @@
 	    ((eqv? #\" ch) (read-character file) (read-word file))
 	    (else (error "parse error" ch)))))
 
-  (define* (load file)
+  (define* (jload file)
     (call-with-input-file file
       (lambda (x)
 	(parse x))))
@@ -175,7 +175,7 @@
 
 (define-syntax json:load
   (lambda (file)
-    `(using json (load) (load ,file))))
+    `(using json (jload) (jload ,file))))
 
 (define string->json
   (lambda (source)
