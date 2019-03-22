@@ -8,7 +8,7 @@
 
 #define RELEASE_DATE	"2018-12-05"
 #define PATCHLEVEL	1
-#define MARS "Martian Edition 0023"
+#define MARS "Martian Edition 0024"
 
 #include "s9core.h"
 #include "s9import.h"
