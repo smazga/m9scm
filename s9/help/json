@@ -1,15 +1,12 @@
-S9 LIB  (json:load string)        ==> list
-        (string->json string)     ==> list
-	(json->string list)       ==> string
+S9 LIB  (json:load string)     ==>  list
+        (string->json string)  ==>  list
+	(json->string list)    ==>  string
 
         (load-from-library "json.scm")
 
 JSON:LOAD takes a file (specified in STRING) and loads it into a list.
-
 STRING->JSON takes a string and loads into a JSON-style list.
-
 JSON->STRING takes a compatible list and returns a JSON-style string.
-
 JSON types are represented with scheme types as follows:
 
  array      --> vector
@@ -23,7 +20,5 @@ JSON types are represented with scheme types as follows:
 Assuming a file "simple.json" containing: {"key":"value"}
 
 (json:load "simple.json")   ==>  (("key" . "value"))
-
 (string->json "{\"key\": \"value\"}") ==> (("key" . "value"))
-
 (json->string '(("key" . "value"))) ==> "{\"key\":\"value\"}"

@@ -122,6 +122,7 @@
  (integer-sqrt)
  (intersection)
  (iota iota*)
+ (json json:load string->json json->string)
  (keyword-value accept-keywords)
  (lambda)
  (leap-year?)
