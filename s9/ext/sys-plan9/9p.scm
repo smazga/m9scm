@@ -139,11 +139,11 @@
 (define-syntax 9p:fs
   (lambda (srvname)
     `(format #t "9p:fs: ~A~%" ,srvname)
-    ;; `(instance ,srvname)))
-    `(using 9p (instance) (instance ,srvname))))
+     `(instance ,srvname)))
+;;    `(using 9p (instance) (instance ,srvname))))
 
 (define-syntax 9p:srv
   (lambda (f)
     (format #t "9p:srv: ~A~%" f)
-    ;; `(srv ,f)))
-    `(using 9p (srv) (srv ,f))))
+    	`(srv ,f)))
+;;    `(using 9p (srv) (srv ,f))))

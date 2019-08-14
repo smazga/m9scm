@@ -71,5 +71,5 @@
         (contents (cdr path)))
     (format #t "dir: ~A~%" dir)))
 
-(dump-tree *9p:tree* #f)
+;; (dump-tree *9p:tree* #f)
 (srv fs)
