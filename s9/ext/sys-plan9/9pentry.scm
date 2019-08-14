@@ -1,8 +1,8 @@
 (load-from-library "s9sos.scm")
 
 (define-class 9p:entry ())
-(define-class 9p:dir (9p:entry))
-(define-class 9p:file (9p:entry))
+(define-class :9p:dir (9p:entry))
+(define-class :9p:file (9p:entry))
 (define-generic 9p:read)
 
 (define-method (9p:read (f 9p:file) fc)
