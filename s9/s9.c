@@ -8,7 +8,7 @@
 
 #define RELEASE_DATE	"2018-12-05"
 #define PATCHLEVEL	1
-#define MARS "Martian Edition 0024"
+#define MARS "Martian Edition 25"
 
 #include "s9core.h"
 #include "s9import.h"
@@ -286,6 +286,7 @@ void sys_init(void);
 void curs_init(void);
 void csv_init(void);
 void curl_init(void);
+void ninep_init(void);
 
 #ifndef EXTENSIONS
  #define EXTENSIONS
