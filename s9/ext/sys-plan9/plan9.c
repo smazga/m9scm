@@ -465,7 +465,7 @@ cell sys_convM2S(uchar* edir, int len) {
 	return n;
 }
 
-int sys_convS2M(cell x, uchar*buf, int len) {
+int sys_convS2M(cell x, uchar *buf, int len) {
 	Fcall f;
 	int	r, flen, i;
 	char *b, *e;
@@ -611,10 +611,11 @@ int sys_convS2M(cell x, uchar*buf, int len) {
 		return -1;
 	}
 
-	/* fprint(2, "convS2M: %F\n", &f); */
+	fprint(2, "convS2M: %F\n", &f);
 	r = sizeS2M(&f);
 	if (r > len)
 		return -1;
+
 	convS2M(&f, buf, len);
 	return r;
 }
@@ -720,20 +721,20 @@ cell pp_sys_convM2D(void) {
 	uchar*	buf = (uchar*)string(x);
 	int	len = string_len(x);
 
-	/* XXX check size */
 	if (len < 0)
 		return FALSE;
+
 	return sys_convM2D(buf, BIT16SZ + GBIT16(buf));
 }
 
 cell pp_sys_convS2M(void) {
 	cell x = parg(1);
-	uchar	buf[8192+IOHDRSZ];
+	uchar buf[8192+IOHDRSZ];
 	int	len = sys_convS2M(x, buf, sizeof buf);
 
-	/* XXX check size */
 	if (len < 0)
 		return FALSE;
+
 	return make_string((char*)buf, len);
 }
 
@@ -742,7 +743,6 @@ cell pp_sys_convM2S(void) {
 	uchar*	buf = (uchar*)string(x);
 	int	len = string_len(x);
 
-	/* XXX check size */
 	if (len < 0)
 		return FALSE;
 	return sys_convM2S(buf, BIT16SZ + GBIT16(buf));
@@ -1111,7 +1111,6 @@ cell pp_sys_rendezvous(void) {
 }
 
 cell pp_sys_rfork(void) {
-	cell x;
 	int	pid;
 
 	pid = rfork(integer_value("sys:rfork", parg(1)));
@@ -1201,10 +1200,11 @@ cell pp_sys_write(void) {
 	int	r;
 
 	x = parg(1);
-	r = write(integer_value("sys:write", x), string(parg(2)),
-		string_len(parg(2))-1);
+	r = write(integer_value("sys:write", x), string(parg(2)), string_len(parg(2))-1);
+
 	if (r < 0)
 		return sys_error("sys:write", x);
+
 	return make_long_integer(r);
 }
 

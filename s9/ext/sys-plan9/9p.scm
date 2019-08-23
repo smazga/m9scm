@@ -108,7 +108,7 @@
 	    (let* ((fc (apply make-fcall (vector->list (sys:convM2S msg))))
 		   (result (handle f fc)))
 	      (format #t "result: ~A~%" result)
-	      (if (vector? result) (sys:write pipe (sys:convS2M result)))
+	      (if (vector? result) (9p:write pipe result))
 	      (loop (sys:read9pmsg pipe)))))))
 
   (define (initsrv srvname)
