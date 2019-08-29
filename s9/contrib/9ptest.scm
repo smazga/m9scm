@@ -6,7 +6,7 @@
 (define *9p:buffers* (make-hash-table))
 (define *9p:qids* (make-hash-table))
 
-(define *9p:tree*
+(define *tree*
 	(9p:root #o0666
 		(9p:dir "foo" #o0666
 			(9p:file "bar" #o0666 "file contents")
@@ -54,8 +54,23 @@
 		(if (false qid) (list fid)
 			(list qid))))
 
+;;(define (dump-tree path rest)
+;;  (let ((dir (car path))
+;;        (contents (cdr path)))
+;;    (format #t "dir: ~A~%" dir)))
+
+(define (dump-tree path)
+  (let ((dir (dir-name path))
+		(contents (dir-contents path)))
+    (format #t "dir: ~A~%" dir)
+	(dump-tree contents)))
+
 (format #t "init~%")
-(define fs (instance "fnord"))
+(format #t "TREE: ~A~%" (dir-contents *tree*))
+(format #t "  type: ~A~%" (type-of *tree*))
+(format #t "  root: ~A~%" (dir-path (get-root)))
+;; (dump-tree (get-entry 0))
+(define fs (instance "fnord" *tree*))
 
 (register fs "read" fsread)
 (register fs "attach" fsattach)
@@ -66,10 +81,4 @@
 
 (format #t "ROOT: ~A~%" (get-root))
 
-(define (dump-tree path rest)
-  (let ((dir (car path))
-        (contents (cdr path)))
-    (format #t "dir: ~A~%" dir)))
-
-;; (dump-tree *9p:tree* #f)
 (srv fs)
