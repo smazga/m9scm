@@ -6,7 +6,6 @@
 (define *9p:paths-table* (make-hash-table))
 (define *9p:path-map* (make-hash-table))
 (define *9p:path-id* 0)
-(define *9p:tree* '())
 (define *9p:root* '())
 
 ;(module 9p
@@ -26,9 +25,10 @@
 			id))
 	
 	(define (parse-path tree)
+		(format #t "TREE: ~A~%" tree)
 		(let* ((dir (car tree))
-					 (path (dir-path dir))
-					 (contents (dir-contents dir)))
+			   (path (dir-path dir))
+			   (contents (dir-contents dir)))
 			(format #t "ADDING ~A~%" dir)
 			(format #t "CONTENTS (~A): ~A~%" (type-of contents) contents)
 			(hash-table-set! *9p:paths-table* path dir)
@@ -41,7 +41,8 @@
 
 	(define (9p:root mode . contents)
 		(let ((root (9p:entry "" mode sys:QTDIR contents)))
-			(set! *9p:root* root)))
+			(set! *9p:root* root)
+			root))
 
 	(define (9p:dir name mode . contents)
 		(9p:entry name mode sys:QTDIR contents))
@@ -58,6 +59,7 @@
       (dir-set-contents! d contents)
       (format #t "9p:entry: ~A~%" (stat d))
       (dir-set-msg! d (sys:convD2M (stat d)))
+      (format #t "  path: ~A~%" path)
       (hash-table-set! *9p:path-map* path d)
       d))
 
@@ -85,7 +87,7 @@
 	    (dir-muid d)))
 
   (define (handle f fc)
-    (let* ((x (format #t "handle::~A~%" fc))
+    (let* ((x (format #t "~%handle::~A~%" fc))
 	   (ftype (symbol->string (fcall-action fc)))
 	   (action (substring ftype 1 (string-length ftype)))
 	   (handler (hash-table-ref (fs-funcs f) action))
@@ -124,10 +126,12 @@
       (sys:close ptmp)
       pipe))
 
-  (define (instance srvname)
+  (define (instance srvname tree)
     (let ((f (make-fs srvname (make-hash-table))))
-    	(if (null? *9p:tree*) (error "*9p:tree* must be defined"))
-;;    		(parse-path *9p:tree*))
+    	(if (null? tree) (error "tree must be defined")
+			(begin
+				(format #t "parse: ~A~%" tree)
+	    		(parse-path tree)))
     	(format #t "PATHS: ~A~%" *9p:path-map*)
       (register f "version" versionstub)
       f))
@@ -137,10 +141,10 @@
 ;)
 
 (define-syntax 9p:fs
-  (lambda (srvname)
+  (lambda (srvname tree)
     `(format #t "9p:fs: ~A~%" ,srvname)
-     `(instance ,srvname)))
-;;    `(using 9p (instance) (instance ,srvname))))
+     `(instance ,srvname ,tree)))
+;;    `(using 9p (instance) (instance ,srvname ,tree))))
 
 (define-syntax 9p:srv
   (lambda (f)
