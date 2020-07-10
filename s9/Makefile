@@ -4,7 +4,7 @@
 # In the public domain
 
 # Change at least this line:
-PREFIX=/usr/local
+PREFIX ?= /usr/local
 
 # Base version and Release
 BASE=		20181115
